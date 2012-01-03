@@ -1,8 +1,10 @@
 
 # -----------------------------------------------------------------------------
-# calc.py
+# datemath.py
 #
-# A simple calculator with variables -- all in one file.
+# A simple calculator with variables -- all in one file -- modified to support
+# date math syntax as well. (converts expressions like 1DAY into the # of 
+# seconds in a day, likewise for 1MONTH and 5YEARS).
 # -----------------------------------------------------------------------------
 
 tokens = (

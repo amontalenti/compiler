@@ -84,6 +84,7 @@ Once you are reasonably happy with the output, try running the unit tests.
 
 The unit tests are designed to stress test various corner cases.
 '''
+import re
 
 # ----------------------------------------------------------------------
 # The following import loads a function error(lineno,msg) that should be
@@ -128,14 +129,14 @@ t_ignore = ' \t\r'
 # 
 # Tokens for simple symbols: + - * / = ( ) ; 
 
-t_PLUS      = r'regex for a single plus sign'
-t_MINUS     = r'regex for a single minus sign'
-t_TIMES     = r'regex for a single star'
-t_DIVIDE    = r'regex for a single forward slash'
-t_ASSIGN    = r'regex for a single equals sign'
-t_SEMI      = r'regex for a semicolon'
-t_LPAREN    = r'regex for a left paren'
-t_RPAREN    = r'regex for a right paren'
+t_PLUS      = r'\+'
+t_MINUS     = r'-'
+t_TIMES     = r'\*'
+t_DIVIDE    = r'/'
+t_ASSIGN    = r'='
+t_SEMI      = r';'
+t_LPAREN    = r'\('
+t_RPAREN    = r'\)'
 
 # ----------------------------------------------------------------------
 # *** YOU MUST COMPLETE : write the regexs and additional code below ***
@@ -148,8 +149,14 @@ t_RPAREN    = r'regex for a right paren'
 #   1.23, 1.23e1, 1.23e+1, 1.23e-1, 123., .123, 1e1, 0.
 #
 # The value should be converted to a Python float when lexed
+#
+# AM notes:
+#  - float can have a leading dot, followed by any numbers
+#  - float can be a number.number
+#  - either of above two forms can have a an exponential form
+
 def t_FLOAT(t):
-    r'regex for a floating point number'
+    r'\d+[eE][-+]?\d+|(\.\d+|\d+\.\d+)([eE][-+]?\d+)?'
     t.value = float(t.value)               # Conversion to Python float
     return t
 
@@ -162,7 +169,7 @@ def t_FLOAT(t):
 #
 # The value should be converted to a Python int when lexed.
 def t_INTEGER(t):
-    r'regex for an integer'
+    r'(\d+|0[Xx]\d+)'
     # Conversion to a Python int
     if t.value.startswith(('0x','0X')):
         t.value = int(t.value,16)              
@@ -202,12 +209,30 @@ def _replace_escape_codes(t):
     their raw character code equivalents.   Suggest doing this
     with re.sub()
     '''
+    literals = {
+        r"\\n": "\n",
+        r"\\r": "\r",
+        r"\\t": "\t",
+        r"\\\\": r"\\",
+        r'\\"': r'"'
+    }
+    re_byte = r".*\\b(?P<val>[0-9a-fA-F]{2}).*"
+    byte_pat = re.compile(re_byte)
+    for pattern, repl in literals.items():
+        t.value = re.sub(pattern, repl, t.value)
+    matcher = byte_pat.match(t.value)
+    if matcher:
+        val = matcher.groupdict()["val"]
+        val = chr(int(val, 16))
+        # chomping first 2 and last 2 chars of pattern to eliminate .*
+        # yes, this is a bit hacky
+        t.value = re.sub(re_byte[2:-2], val, t.value)
     # Error to use for reporting a bad escape code
     if False:
         error(t.lexer.lineno,"Bad string escape code '%s'" % escape_code)
     
 def t_STRING(t):
-    r'regex for a string literal'
+    r'\".*?\"'
     # Convert t.value into a string with escape codes replaced by actual values.
     t.value = t.value[1:-1]
     _replace_escape_codes(t)    # Must implement above
@@ -221,8 +246,11 @@ def t_STRING(t):
 # Match a raw identifier.  Identifiers follow the same rules as Python.
 # That is, they start with a letter or underscore (_) and can contain
 # an arbitrary number of letters, digits, or underscores after that.
+keywords = {"var", "const", "print"}
 def t_ID(t):
-    r'regex for an identifier'
+    r'[_A-Za-z][_A-Za-z0-9]*'
+    if t.value in keywords:
+        t.type = t.value.upper()
     return t
 
 # *** YOU MUST IMPLEMENT ***
@@ -236,17 +264,17 @@ def t_ID(t):
 
 # One or more blank lines
 def t_newline(t):
-    r'regex for one or more newlines'
+    r'\n'
     t.lexer.lineno += len(t.value)
 
 # C-style comment (/* ... */)
 def t_COMMENT(t):
-    r'regex for a C style comment'
+    r'/\*.*?\*/'
     t.lexer.lineno += t.value.count('\n')
     
 # C++-style comment (//...)
 def t_CPPCOMMENT(t):
-    r'regex for a C plusplus comment'
+    r'// .*'
     t.lexer.lineno += 1
 
 # ----------------------------------------------------------------------
@@ -262,12 +290,12 @@ def t_error(t):
 
 # Unterminated C-style comment
 def t_COMMENT_UNTERM(t):
-    r'regex for an unterminated comment'
+    r'\/\*.*'
     error(t.lexer.lineno,"Unterminated comment")
 
 # Unterminated string literal
 def t_STRING_UNTERM(t):
-    r'regex for an unterminated string literal'
+    r'\".*'
     error(t.lexer.lineno,"Unterminated string literal")
     t.lexer.lineno += 1
     

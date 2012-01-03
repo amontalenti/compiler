@@ -274,7 +274,7 @@ def t_COMMENT(t):
     
 # C++-style comment (//...)
 def t_CPPCOMMENT(t):
-    r'// .*'
+    r'//.*\n'
     t.lexer.lineno += 1
 
 # ----------------------------------------------------------------------

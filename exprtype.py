@@ -33,7 +33,7 @@ class ExprType(object):
     Class that represents a type in the Expr language.  Types 
     are declared as singleton instances of this type.
     '''
-    def __init__(self, typename, default, binary_ops=None, unary_ops=None):
+    def __init__(self, typename, default, unary_opcodes=None, binary_opcodes=None, binary_ops=None, unary_ops=None):
         '''
         You must implement yourself and figure out what to store.
         '''
@@ -41,10 +41,24 @@ class ExprType(object):
         self.binary_ops = binary_ops or set()
         self.unary_ops = unary_ops or set()
         self.default = default
+        self.unary_opcodes = unary_opcodes or {}
+        self.binary_opcodes = binary_opcodes or {}
 
     def __repr__(self):
         return "ExprType({})".format(self.typename)
 
-IntType = ExprType("int", int(), binary_ops={"+", "-", "*", "/"}, unary_ops={"+", "-"})
-FloatType = ExprType("float", float(), binary_ops={"+", "-", "*", "/"}, unary_ops={"+", "-"})
-StringType = ExprType("string", str(), binary_ops={"+"})
+IntType = ExprType("int", int(), 
+    binary_ops={"+", "-", "*", "/"}, 
+    unary_ops={"+", "-"},
+    binary_opcodes={"+": "add", "-": "sub", "*": "imul", "/": "idiv"},
+    unary_opcodes={"+": "uadd", "-": "uneg"}
+)
+FloatType = ExprType("float", float(), 
+    binary_ops={"+", "-", "*", "/"}, 
+    unary_ops={"+", "-"},
+    binary_opcodes={"+": "add", "-": "sub", "*": "fmul", "/": "fdiv"},
+    unary_opcodes={"+": "uadd", "-": "uneg"}
+)
+StringType = ExprType("string", str(), 
+   binary_ops={"+"},
+   binary_opcodes={"+": "add"})

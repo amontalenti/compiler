@@ -114,7 +114,7 @@ class GenerateCode(exprast.NodeVisitor):
     Node visitor class that creates 3-address encoded instruction sequences.
     '''
     def new_temp(self,type):
-        name = "%s_%d" % (type.name,self.temp_count)
+        name = "%s_%d" % (type.typename,self.temp_count)
         self.temp_count += 1
         return name
 
@@ -132,11 +132,56 @@ class GenerateCode(exprast.NodeVisitor):
     # One sample method follows
 
     def visit_Literal(self,node):
-        target = self.new_temp(node.type)
+        target = self.new_temp(node.check_type)
         inst = ('loadi', node.value, target)
         self.code.append(inst)
         # Save the name of the temporary variable where the value was placed 
         node.gen_location = target
+
+    def visit_Unaryop(self,node):
+        self.visit(node.expr)
+        target = self.new_temp(node.check_type)
+        instruction = node.check_type.unary_opcodes[node.op] 
+        inst = (instruction, node.expr.gen_location, target)
+        self.code.append(inst)
+        node.gen_location = target
+
+    def visit_LoadLocation(self, node):
+        target = self.new_temp(node.check_type)
+        inst = ('load', node.location.name, target)
+        self.code.append(inst)
+        # Save the name of the temporary variable where the value was placed 
+        node.gen_location = target
+
+    def visit_Binop(self, node):
+        self.visit(node.left)
+        self.visit(node.right)
+        target = self.new_temp(node.check_type)
+        instruction = node.check_type.binary_opcodes[node.op]
+        inst = (instruction, node.left.gen_location, node.right.gen_location, target)
+        self.code.append(inst)
+        node.gen_location = target
+
+    def visit_VarDeclaration(self, node):
+        self.visit(node.expr)
+        inst = ("newvar", node.expr.gen_location, node.name)
+        self.code.append(inst)
+
+    def visit_ConstDeclaration(self, node):
+        self.visit(node.expr)
+        inst = ("newvar", node.expr.gen_location, node.name)
+        self.code.append(inst)
+
+    def visit_AssignmentStatement(self, node):
+        self.visit(node.expr)
+        inst = ("store", node.expr.gen_location, node.name)
+        self.code.append(inst)
+
+    def visit_PrintStatement(self, node):
+        self.visit(node.expr)
+        inst = ("print", node.expr.gen_location)
+        self.code.append(inst)
+
 
 # STEP 3: Testing
 # 

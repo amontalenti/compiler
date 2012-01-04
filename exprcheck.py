@@ -177,13 +177,17 @@ class CheckProgramVisitor(NodeVisitor):
             error(node.lineno, "name '{}' not defined".format(node.location.name))
         # 2. Check that assignment is allowed
         self.visit(node.expr)
-        if isinstance(sym, (VarDeclaration, ConstDeclaration)):
+        if isinstance(sym, VarDeclaration):
             # empty var declaration, so check against the declared type name
             if hasattr(sym, "check_type") and hasattr(node.expr, "check_type"):
                 declared_type = sym.check_type
                 value_type = node.expr.check_type
                 if declared_type != value_type:
                     error(node.lineno, "Cannot assign {} to {}".format(value_type, declared_type))
+                    return
+        if isinstance(sym, ConstDeclaration):
+            error(node.lineno, "Cannot assign to constant {}".format(sym.name))
+            return
         # 3. Check that the types match
         if hasattr(node.location, "check_type") and hasattr(node.expr, "check_type"):
             declared_type = node.location.check_type
@@ -204,6 +208,7 @@ class CheckProgramVisitor(NodeVisitor):
         # 1. Check that the variable name is not already defined
         if self.symtab.lookup(node.name) is not None:
             error(node.lineno, "Attempted to redefine var '{}', not allowed".format(node.name))
+            return
         # 2. Add an entry to the symbol table
         self.symtab.add(node.name, node)
         # 3. Check that the type of the expression (if any) is the same
@@ -237,6 +242,9 @@ class CheckProgramVisitor(NodeVisitor):
             error(node.lineno, "name '{}' not found".format(node.location.name))
             return
         # 2. Assign the appropriate type
+        if isinstance(sym, ExprType):
+            error(node.lineno, "cannot use {} outside of variable declarations".format(sym.typename))
+            return
         check_type = sym.check_type
         if check_type is None:
             error(node.lineno, "Using unrecognized type {}".format(valtype))

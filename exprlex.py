@@ -269,7 +269,7 @@ def t_newline(t):
 
 # C-style comment (/* ... */)
 def t_COMMENT(t):
-    r'/\*.*?\*/'
+    r'/\*(.|\n)*?\*/'
     t.lexer.lineno += t.value.count('\n')
     
 # C++-style comment (//...)
@@ -290,12 +290,12 @@ def t_error(t):
 
 # Unterminated C-style comment
 def t_COMMENT_UNTERM(t):
-    r'\/\*.*'
+    r'/\*(.|\n)*$'
     error(t.lexer.lineno,"Unterminated comment")
 
 # Unterminated string literal
 def t_STRING_UNTERM(t):
-    r'\".*'
+    r'\"(\.|.)*?\n'
     error(t.lexer.lineno,"Unterminated string literal")
     t.lexer.lineno += 1
     

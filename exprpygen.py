@@ -77,19 +77,19 @@ class ExprPyCodeEmitter(CodeEmitter):
          '''
          Load the value of a variable
          '''
-         return "%s = %s" % (target, name)
+         return "%s = frame[%r]" % (target, name)
 
     def emit_newvar(self,source,name):
          '''
          Create a new variable
          '''
-         return "%s = %s" % (name, source)
+         return "frame[%r] = %s" % (name, source)
 
     def emit_store(self,source,name):
          '''
          Store a value into a variable
          '''
-         return "%s = %s" % (name, source)
+         return "frame[%r] = %s" % (name, source)
 
     def emit_add(self,left,right,target):
          '''

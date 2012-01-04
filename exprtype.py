@@ -33,22 +33,17 @@ class ExprType(object):
     Class that represents a type in the Expr language.  Types 
     are declared as singleton instances of this type.
     '''
-    def __init__(self):
+    def __init__(self, typename, binary_ops=None, unary_ops=None):
         '''
         You must implement yourself and figure out what to store.
         '''
-        pass
+        self.typename = typename
+        self.binary_ops = binary_ops or set()
+        self.unary_ops = unary_ops or set()
 
+    def __repr__(self):
+        return "ExprType({})".format(self.typename)
 
-# Create specific instances of types. You will need to add
-# appropriate arguments depending on your definition of ExprType
-int_type = ExprType()
-float_type = ExprType()
-string_type = ExprType()
-
-         
-          
-
-
-
-
+IntType = ExprType("int", binary_ops={"+", "-", "*", "/"}, unary_ops={"+", "-"})
+FloatType = ExprType("float", binary_ops={"+", "-", "*", "/"}, unary_ops={"+", "-"})
+StringType = ExprType("string", binary_ops={"+"})

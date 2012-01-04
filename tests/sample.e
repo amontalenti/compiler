@@ -1,12 +1,8 @@
 /* Sample Expr Program */
 
-    const pi = 3.14159; // foo
+    e = foo*3;
+    const pi = 3.14159;
     const e = 2.71828;
-    const f1 = 2e5;
-    const f2 = 0.1e-1;
-    const f3 = "Hello\n";
-    const f4 = "Hello\b0fWorld";
-
     const twopi = 2*pi;
     var x int;
     var y int = 23*45;

@@ -27,6 +27,13 @@ class AST(object):
         for name,value in kwargs.items():
             setattr(self,name,value)
 
+    def __repr__(self):
+        excluded = {"lineno"}
+        return "{} {}".format(self.__class__, 
+                              {key: value 
+                               for key, value in vars(self).items() 
+                               if not key.startswith("_") and not key in excluded})
+
 # ----------------------------------------------------------------------
 # Specific AST nodes.
 #
@@ -45,7 +52,6 @@ class AST(object):
 
 class Literal(AST):
     _fields = ['value']          
-
 
 class Typename(AST):
     _fields = ['name']          

@@ -85,14 +85,21 @@ A shell of the code is provided below.
 
 from errors import error
 from exprast import *
-import exprtype
+from exprtype import IntType, FloatType, StringType, ExprType
+from collections import defaultdict
+from pprint import pprint
 
-class SymbolTable(object):
+class SymbolTable(dict):
     '''
     Class representing a symbol table.  It should provide functionality
     for adding and looking up nodes associated with identifiers.
     '''
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    def add(self, name, value):
+        self[name] = value
+    def lookup(self, name):
+        return self.get(name, None)
 
 class CheckProgramVisitor(NodeVisitor):
     '''
@@ -104,16 +111,25 @@ class CheckProgramVisitor(NodeVisitor):
     picked different names.
     '''
     def __init__(self):
-        # Initialize the symbol table
-        pass
-
-        # Add built-in type names (int, float, string) to the symbol table
-        pass
+        self.symtab = SymbolTable()
+        self.symtab.update({
+            "int": IntType,
+            "float": FloatType,
+            "string": StringType
+        })
+        self.typemap = {
+            int: IntType, 
+            float: FloatType, 
+            str: StringType
+        }
 
     def visit_Program(self,node):
         # 1. Visit all of the statements
-        # 2. Record the associated symbol table
-        pass
+        for statement in node.statements.statements:
+            self.visit(statement)
+            # 2. Record the associated symbol table
+            if isinstance(statement, AssignmentStatement):
+                self.symtab.add(statement.location.name, statement.expr)
 
     def visit_Unaryop(self,node):
         # 1. Make sure that the operation is supported by the type
@@ -122,45 +138,104 @@ class CheckProgramVisitor(NodeVisitor):
 
     def visit_Binop(self,node):
         # 1. Make sure left and right operands have the same type
+        pair = node.left, node.right
+        left, right = pair
+        op = node.op
+        type_check = True
+        print(left, right)
+        for item in pair:
+            if not hasattr(item, "check_type"):
+                type_check = False
         # 2. Make sure the operation is supported
+        if type_check:
+            for item in pair:
+                if op not in item.check_type.binary_ops:
+                    error(node.lineno, "{left} {op} {right} not valid: {op} not a valid binary operator for {item}".format(
+                        left=left, op=op, right=right, item=item))
         # 3. Assign the result type
         pass
 
     def visit_AssignmentStatement(self,node):
         # 1. Make sure the location of the assignment is defined
+        sym = self.symtab.lookup(node.location.name)
+        if not sym:
+            error(node.lineno, "name '{}' not defined".format(node.location.name))
         # 2. Check that assignment is allowed
+        self.visit(node.expr)
+        if isinstance(sym, VarDeclaration):
+            # empty var declaration, so check against the declared type name
+            if hasattr(sym, "check_type") and hasattr(node.expr, "check_type"):
+                declared_type = sym.check_type
+                value_type = node.expr.check_type
+                if declared_type != value_type:
+                    error(node.lineno, "Cannot assign {} to {}".format(value_type, declared_type))
+        if hasattr(node.location, "check_type") and hasattr(node.expr, "check_type"):
+            declared_type = node.location.check_type
+            value_type = node.expr.check_type
+            if declared_type != value_type:
+                error(node.lineno, "Cannot assign {} to {}".format(value_type, declared_type))
         # 3. Check that the types match
-        pass
 
     def visit_ConstDeclaration(self,node):
         # 1. Check that the constant name is not already defined
+        if self.symtab.lookup(node.name) is not None:
+            error(node.lineno, "Attempted to redefine const '{}', not allowed".format(node.name))
         # 2. Add an entry to the symbol table
-        pass
+        self.symtab.add(node.name, node.expr)
+        self.visit(node.expr)
 
     def visit_VarDeclaration(self,node):
         # 1. Check that the variable name is not already defined
+        if self.symtab.lookup(node.name) is not None:
+            error(node.lineno, "Attempted to redefine var '{}', not allowed".format(node.name))
         # 2. Add an entry to the symbol table
+        if node.expr is not None:
+            self.symtab.add(node.name, node.expr)
+        else:
+            self.symtab.add(node.name, node)
         # 3. Check that the type of the expression (if any) is the same
+        self.visit(node.typename)
+        # propagate check_type from Typename up to Var declaration
+        if hasattr(node.typename, "check_type"):
+            node.check_type = node.typename.check_type
         # 4. If there is no expression, set an initial value for the value
-        pass
+        self.visit(node.expr)
 
     def visit_Typename(self,node):
         # 1. Make sure the typename is valid and that it's actually a type
-        pass
+        sym = self.symtab.lookup(node.name)
+        if not isinstance(sym, ExprType):
+            error(node.lineno, "{} is not a valid type".format(node.name))
+            return
+        node.check_type = sym
 
     def visit_Location(self,node):
         # 1. Make sure the location is a valid variable or constant value
+        sym = self.symtab.lookup(node.name)
+        if not sym:
+            error(node.lineno, "name '{}' not found".format(node.name))
         # 2. Assign the type of the location to the node
         pass
 
     def visit_LoadLocation(self,node):
         # 1. Make sure the loaded location is valid.
+        sym = self.symtab.lookup(node.name)
+        if not sym:
+            error(node.lineno, "name '{}' not found".format(node.name))
         # 2. Assign the appropriate type
-        pass
+        valtype = type(node.value)
+        check_type = self.typemap.get(valtype, None)
+        if check_type is None:
+            error(node.lineno, "Using unrecognized type {}".format(valtype))
+        node.check_type = check_type
 
     def visit_Literal(self,node):
         # Attach an appropriate type to the literal
-        pass
+        valtype = type(node.value)
+        check_type = self.typemap.get(valtype, None)
+        if check_type is None:
+            error(node.lineno, "Using unrecognized type {}".format(valtype))
+        node.check_type = check_type
         
 # ----------------------------------------------------------------------
 #                       DO NOT MODIFY ANYTHING BELOW       
@@ -172,6 +247,7 @@ def check_program(node):
     '''
     checker = CheckProgramVisitor()
     checker.visit(node)
+    pprint(checker.symtab)
 
 if __name__ == '__main__':
     import exprlex
@@ -185,6 +261,3 @@ if __name__ == '__main__':
         # Check the program
         check_program(program)
             
-
-
-

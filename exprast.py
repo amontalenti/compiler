@@ -29,7 +29,7 @@ class AST(object):
 
     def __repr__(self):
         excluded = {"lineno"}
-        return "{} {}".format(self.__class__, 
+        return "{}[{}]".format(self.__class__.__name__, 
                               {key: value 
                                for key, value in vars(self).items() 
                                if not key.startswith("_") and not key in excluded})

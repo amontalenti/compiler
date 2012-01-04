@@ -123,6 +123,27 @@ class CheckProgramVisitor(NodeVisitor):
             str: StringType
         }
 
+    def check_type_unary(self, node, op, val):
+        if hasattr(val, "check_type"):
+            if op not in val.check_type.unary_ops:
+                error(node.lineno, "Unary operator {} not supported".format(op))
+            return val.check_type
+
+    def check_type_binary(self, node, op, left, right):
+        if hasattr(left, "check_type") and hasattr(right, "check_type"):
+            if left.check_type != right.check_type:
+                error(node.lineno, "Binary operation {} does not have matching LHS/RHS types".format(op))
+                return left.check_type
+            errside = None
+            if op not in left.check_type.binary_ops:
+                errside = "LHS"
+            if op not in right.check_type.binary_ops:
+                errside = "RHS"
+            if errside is not None:
+                error(node.lineno, "Binary operator {} not supported on {} of expression".format(op, errside))
+            # XXX: right now we just propagate the left type, but we should probably handle error conditions
+            return left.check_type
+
     def visit_Program(self,node):
         # 1. Visit all of the statements
         for statement in node.statements.statements:
@@ -132,28 +153,22 @@ class CheckProgramVisitor(NodeVisitor):
                 self.symtab.add(statement.location.name, statement.expr)
 
     def visit_Unaryop(self,node):
+        self.visit(node.expr)
         # 1. Make sure that the operation is supported by the type
+        check_type = self.check_type_unary(node, node.op, node.expr)
         # 2. Set the result type to the same as the operand
-        pass
+        node.check_type = check_type
+
 
     def visit_Binop(self,node):
         # 1. Make sure left and right operands have the same type
-        pair = node.left, node.right
-        left, right = pair
-        op = node.op
-        type_check = True
-        print(left, right)
-        for item in pair:
-            if not hasattr(item, "check_type"):
-                type_check = False
         # 2. Make sure the operation is supported
-        if type_check:
-            for item in pair:
-                if op not in item.check_type.binary_ops:
-                    error(node.lineno, "{left} {op} {right} not valid: {op} not a valid binary operator for {item}".format(
-                        left=left, op=op, right=right, item=item))
+        # AM note: both are done in check_type_binary
+        self.visit(node.left)
+        self.visit(node.right)
+        check_type = self.check_type_binary(node, node.op, node.left, node.right)
         # 3. Assign the result type
-        pass
+        node.check_type = check_type
 
     def visit_AssignmentStatement(self,node):
         # 1. Make sure the location of the assignment is defined
@@ -162,37 +177,35 @@ class CheckProgramVisitor(NodeVisitor):
             error(node.lineno, "name '{}' not defined".format(node.location.name))
         # 2. Check that assignment is allowed
         self.visit(node.expr)
-        if isinstance(sym, VarDeclaration):
+        if isinstance(sym, (VarDeclaration, ConstDeclaration)):
             # empty var declaration, so check against the declared type name
             if hasattr(sym, "check_type") and hasattr(node.expr, "check_type"):
                 declared_type = sym.check_type
                 value_type = node.expr.check_type
                 if declared_type != value_type:
                     error(node.lineno, "Cannot assign {} to {}".format(value_type, declared_type))
+        # 3. Check that the types match
         if hasattr(node.location, "check_type") and hasattr(node.expr, "check_type"):
             declared_type = node.location.check_type
             value_type = node.expr.check_type
             if declared_type != value_type:
                 error(node.lineno, "Cannot assign {} to {}".format(value_type, declared_type))
-        # 3. Check that the types match
 
     def visit_ConstDeclaration(self,node):
         # 1. Check that the constant name is not already defined
         if self.symtab.lookup(node.name) is not None:
             error(node.lineno, "Attempted to redefine const '{}', not allowed".format(node.name))
         # 2. Add an entry to the symbol table
-        self.symtab.add(node.name, node.expr)
+        self.symtab.add(node.name, node)
         self.visit(node.expr)
+        node.check_type = node.expr.check_type
 
     def visit_VarDeclaration(self,node):
         # 1. Check that the variable name is not already defined
         if self.symtab.lookup(node.name) is not None:
             error(node.lineno, "Attempted to redefine var '{}', not allowed".format(node.name))
         # 2. Add an entry to the symbol table
-        if node.expr is not None:
-            self.symtab.add(node.name, node.expr)
-        else:
-            self.symtab.add(node.name, node)
+        self.symtab.add(node.name, node)
         # 3. Check that the type of the expression (if any) is the same
         self.visit(node.typename)
         # propagate check_type from Typename up to Var declaration
@@ -215,16 +228,16 @@ class CheckProgramVisitor(NodeVisitor):
         if not sym:
             error(node.lineno, "name '{}' not found".format(node.name))
         # 2. Assign the type of the location to the node
-        pass
+        node.check_type = sym.check_type
 
-    def visit_LoadLocation(self,node):
+    def visit_LoadLocation(self, node):
         # 1. Make sure the loaded location is valid.
-        sym = self.symtab.lookup(node.name)
+        sym = self.symtab.lookup(node.location.name)
         if not sym:
-            error(node.lineno, "name '{}' not found".format(node.name))
+            error(node.lineno, "name '{}' not found".format(node.location.name))
+            return
         # 2. Assign the appropriate type
-        valtype = type(node.value)
-        check_type = self.typemap.get(valtype, None)
+        check_type = sym.check_type
         if check_type is None:
             error(node.lineno, "Using unrecognized type {}".format(valtype))
         node.check_type = check_type

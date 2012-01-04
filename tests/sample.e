@@ -1,6 +1,5 @@
 /* Sample Expr Program */
 
-    e = foo*3;
     const pi = 3.14159;
     const e = 2.71828;
     const twopi = 2*pi;

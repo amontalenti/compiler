@@ -205,7 +205,7 @@ def p_expression_location(p):
     '''
     expression : location
     '''
-    p[0] = LoadLocation(p[1])
+    p[0] = LoadLocation(p[1], lineno=p[1].lineno)
 
 def p_expression_literal(p):
     '''

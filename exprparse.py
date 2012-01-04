@@ -77,12 +77,14 @@ from exprast import *
 # Operator precedence table.   Operators must follow the same 
 # precedence rules as in Python.  Instructions to be given in the project.
 # See http://www.dabeaz.com/ply/ply.html#ply_nn27
-
 precedence = (
+    ('left','PLUS','MINUS'),
+    ('left','TIMES','DIVIDE'),
+    ('right','UNARY'),
 )
 
 # ----------------------------------------------------------------------
-# YOUR TASK.   Translate the BNF in the doc string above into a collection
+# YOUR TASK.   Translate the BNF in the string below into a collection
 # of parser functions.  For example, a rule such as :
 #
 #   program : statements
@@ -115,85 +117,126 @@ precedence = (
 def p_program(p):
     '''
     program : statements
-            | empty
-
     '''
-    #p[0] = Program(p[1])
+    p[0] = Program(p[1])
 
+def p_program_empty(p):
+    '''
+    program : empty
+    '''
+    p[0] = Program(None)
 
 def p_statements(p):
     '''
     statements :  statements statement
-            |  statement
     '''
+    p[0] = p[1]
+    p[0].append(p[2])
+    
+def p_statements_1(p):
+    '''
+    statements : statement
+    '''
+    p[0] = Statements([p[1]])
+
 
 def p_statement(p):
     '''
-    statement :  const_declaration
-            |  var_declaration
-            |  assign_statement
-            |  print_statement
+    statement : const_declaration
+              |  var_declaration
+              |  assign_statement
+              |  print_statement
     '''
+    p[0] = p[1]
 
-
-def p_const(p):
+def p_const_declaration(p):
     '''
     const_declaration : CONST ID ASSIGN expression SEMI
     '''
+    p[0] = ConstDeclaration(p[2],p[4],lineno=p.lineno(1))
 
-def p_var(p):
+def p_var_declaration(p):
     '''
     var_declaration : VAR ID typename SEMI
-                    | VAR ID typename ASSIGN expression SEMI
     '''
+    p[0] = VarDeclaration(p[2],p[3],None,lineno=p.lineno(1))
 
-def p_assign(p):
+def p_var_declaration_expr(p):
+    '''
+    var_declaration : VAR ID typename ASSIGN expression SEMI
+    '''
+    p[0] = VarDeclaration(p[2],p[3],p[5],lineno=p.lineno(1))
+
+def p_assign_statement(p):
     '''
     assign_statement : location ASSIGN expression SEMI
     '''
+    p[0] = AssignmentStatement(p[1],p[3],lineno=p.lineno(2))
 
-def p_print(p):
+def p_print_statement(p):
     '''
     print_statement : PRINT expression SEMI
     '''
+    p[0] = PrintStatement(p[2],lineno=p.lineno(1))
 
-def p_expression(p):
+def p_expression_unary(p):
     '''
-    expression :  PLUS expression
-            |     MINUS expression
-            | expression PLUS expression
-            | expression MINUS expression
-            | expression TIMES expression
-            | expression DIVIDE expression
-            | LPAREN expression RPAREN
-            | location
-            | literal
+    expression : PLUS expression %prec UNARY
+               | MINUS expression %prec UNARY
     '''
+    p[0] = Unaryop(p[1],p[2],lineno=p.lineno(1))
+
+def p_expression_binary(p):
+    '''
+    expression : expression PLUS expression
+               | expression MINUS expression
+               | expression TIMES expression
+               | expression DIVIDE expression
+    '''
+    p[0] = Binop(p[2],p[1],p[3],lineno=p.lineno(2))
+
+def p_expression_group(p):
+    '''
+    expression : LPAREN expression RPAREN
+    '''
+    p[0] = p[2]
+
+def p_expression_location(p):
+    '''
+    expression : location
+    '''
+    p[0] = LoadLocation(p[1])
+
+def p_expression_literal(p):
+    '''
+    expression : literal
+    '''
+    p[0] = p[1]
 
 def p_literal(p):
     '''
-    literal : INTEGER     
-            | FLOAT       
-            | STRING      
+    literal : INTEGER
+            | FLOAT
+            | STRING
     '''
+    p[0] = Literal(p[1],lineno=p.lineno(1))
 
 def p_location(p):
     '''
     location : ID
     '''
+    p[0] = Location(p[1],lineno=p.lineno(1))
 
 def p_typename(p):
     '''
     typename : ID
     '''
+    p[0] = Typename(p[1],lineno=p.lineno(1))
 
 def p_empty(p):
     '''
     empty    :
     '''
-
-# You need to implement the rest of the grammar rules here
-
 
 # ----------------------------------------------------------------------
 # DO NOT MODIFY
@@ -226,3 +269,4 @@ if __name__ == '__main__':
     # Output the resulting parse tree structure
     for depth,node in flatten(program):
         print("%s%s" % (" "*(4*depth),node))
+

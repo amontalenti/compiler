@@ -87,7 +87,6 @@ from errors import error
 from exprast import *
 from exprtype import IntType, FloatType, StringType, ExprType
 from collections import defaultdict
-from pprint import pprint
 
 class SymbolTable(dict):
     '''
@@ -268,7 +267,6 @@ def check_program(node):
     '''
     checker = CheckProgramVisitor()
     checker.visit(node)
-    pprint(checker.symtab)
 
 if __name__ == '__main__':
     import exprlex

@@ -71,67 +71,76 @@ class ExprPyCodeEmitter(CodeEmitter):
          Load an immediate (literal) value
          '''
          # Sample.  Return a string representing a line of output source code
-         return "%s = %r" % (target,value)
+         return "%s = %r" % (target, value)
 
     def emit_load(self,name,target):
          '''
          Load the value of a variable
          '''
-         # You implement
+         return "%s = %s" % (target, name)
+
+    def emit_newvar(self,source,name):
+         '''
+         Create a new variable
+         '''
+         return "%s = %s" % (name, source)
 
     def emit_store(self,source,name):
          '''
          Store a value into a variable
          '''
-         # You implement
+         return "%s = %s" % (name, source)
 
     def emit_add(self,left,right,target):
          '''
          target = left + right
          '''
-         # You implement
+         return "%s = %s + %s" % (target, left, right)
 
     def emit_sub(self,left,right,target):
          '''
          target = left - right
          '''
-         # You implement
+         return "%s = %s - %s" % (target, left, right)
 
     def emit_mul(self,left,right,target):
          '''
          target = left * right
          '''
-         # You implement
+         return "%s = %s * %s" % (target, left, right)
+
+    emit_imul = emit_mul
+    emit_fmul = emit_mul
 
     def emit_idiv(self,left,right,target):
          '''
          target = left / right     (with integer truncation)
          '''
-         # You implement
+         return "%s = %s // %s" % (target, left, right)
 
     def emit_fdiv(self,left,right,target):
          '''
          target = left / right     (floating point)
          '''
-         # You implement
+         return "%s = %s / %s" % (target, left, right)
 
     def emit_uadd(self,source,target):
          '''
          target = +source
          '''
-         # You implement
+         return "%s = +%s" % (target, source)
 
     def emit_uneg(self,source,target):
          '''
          target = -source
          '''
-         # You implement
+         return "%s = +%s" % (target, source)
 
     def emit_print(self,source):
          '''
          print source
          '''
-         # You implement
+         return "print(%s)" % (source)
 
 # STEP 3: Testing
 #

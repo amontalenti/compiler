@@ -37,6 +37,7 @@ need to check:
        const a = 42;         // Type "int"
        const b = 4.2;        // Type "float"
        const c = "forty";    // Type "string"
+       const d = true;
 
     To do this assignment, check the Python type of the literal value and attach
     a type name as appropriate.
@@ -52,6 +53,7 @@ need to check:
         var c int = a + 3;    // OK
         var d int = a + b;    // Error.  int + float
         var e int = b + 4.5;  // Error.  int = float
+        var f bool = true;
 
 4.  Unary operator type checking.
 
@@ -61,9 +63,10 @@ need to check:
 
     Here are the operators supported by each type:
 
-    int:      binary { +, -, *, /}, unary { +, -}
-    float:    binary { +, -, *, /}, unary { +, -}
-    string:   binary { + }, unary { }
+    int:      binary { +, -, *, /, ==, !=, >, >=, <, <= }, unary { +, - }
+    float:    binary { +, -, *, /, ==, !=, >, >=, <, <= }, unary { +, - }
+    string:   binary { +, ==, != }, unary { }
+    bool:     binary { ==, != }, unary { ! }
 
     Attempts to use unsupported operators should result in an error. 
     For example:

@@ -28,12 +28,17 @@ code that checks for type names in 'exprcheck.py'.
 Note:  This file is expanded in later stages of the compiler project.
 '''
 
+import operator
+
 class ExprType(object):
     '''
     Class that represents a type in the Expr language.  Types 
     are declared as singleton instances of this type.
     '''
-    def __init__(self, typename, default, unary_opcodes=None, binary_opcodes=None, binary_ops=None, unary_ops=None):
+    def __init__(self, typename, default, 
+                 unary_opcodes=None, binary_opcodes=None, 
+                 binary_ops=None, unary_ops=None,
+                 binary_folds=None, unary_folds=None):
         '''
         You must implement yourself and figure out what to store.
         '''
@@ -43,6 +48,8 @@ class ExprType(object):
         self.default = default
         self.unary_opcodes = unary_opcodes or {}
         self.binary_opcodes = binary_opcodes or {}
+        self.unary_folds = unary_folds or set()
+        self.binary_folds = binary_folds or set()
 
     def __repr__(self):
         return "ExprType({})".format(self.typename)
@@ -51,14 +58,20 @@ IntType = ExprType("int", int(),
     binary_ops={"+", "-", "*", "/"}, 
     unary_ops={"+", "-"},
     binary_opcodes={"+": "add", "-": "sub", "*": "imul", "/": "idiv"},
-    unary_opcodes={"+": "uadd", "-": "uneg"}
+    unary_opcodes={"+": "uadd", "-": "uneg"},
+    binary_folds={"+": operator.add, "-": operator.sub, "*": operator.sub, "/": operator.floordiv},
+    unary_folds={"+": operator.pos, "-": operator.neg}
 )
 FloatType = ExprType("float", float(), 
     binary_ops={"+", "-", "*", "/"}, 
     unary_ops={"+", "-"},
     binary_opcodes={"+": "add", "-": "sub", "*": "fmul", "/": "fdiv"},
-    unary_opcodes={"+": "uadd", "-": "uneg"}
+    unary_opcodes={"+": "uadd", "-": "uneg"},
+    binary_folds={"+": operator.add, "-": operator.sub, "*": operator.sub, "/": operator.floordiv},
+    unary_folds={"+": operator.pos, "-": operator.neg}
 )
 StringType = ExprType("string", str(), 
    binary_ops={"+"},
-   binary_opcodes={"+": "add"})
+   binary_opcodes={"+": "add"},
+   binary_folds={"+": operator.add}
+)

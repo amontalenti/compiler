@@ -164,6 +164,8 @@ class GenerateCode(exprast.NodeVisitor):
 
     def visit_VarDeclaration(self, node):
         self.visit(node.expr)
+        if not hasattr(node.expr, "gen_location"):
+            import pdb; pdb.set_trace()
         inst = ("newvar", node.expr.gen_location, node.name)
         self.code.append(inst)
 
@@ -174,7 +176,7 @@ class GenerateCode(exprast.NodeVisitor):
 
     def visit_AssignmentStatement(self, node):
         self.visit(node.expr)
-        inst = ("store", node.expr.gen_location, node.name)
+        inst = ("store", node.expr.gen_location, node.location.name)
         self.code.append(inst)
 
     def visit_PrintStatement(self, node):

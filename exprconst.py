@@ -74,6 +74,9 @@ import exprtype
 import exprast
 
 class ConstantFolder(exprast.NodeTransformer):
+    def __init__(self, debug=False):
+        self.debug = debug
+
     def visit_Program(self,node):
         # Get a reference to the program symbol table for later use
         self.symtab = node.symtab
@@ -83,23 +86,42 @@ class ConstantFolder(exprast.NodeTransformer):
     def visit_Binop(self,node):
         # If both the left and right are constant literals, replace the node
         # with a literal value that is the result of the binary operator
-        pass
+        node.left = self.visit(node.left)
+        node.right = self.visit(node.right)
+        if isinstance(node.left, exprast.Literal) and isinstance(node.right, exprast.Literal):
+            foldop = node.check_type.binary_folds[node.op]
+            replacement = exprast.Literal(foldop(node.left.value, node.right.value))
+            replacement.check_type = node.check_type
+            if self.debug:
+                print("Folding {} =>\n\t{}".format(node, replacement))
+            return replacement
+        return node
 
     def visit_Unaryop(self,node):
         # If the operand is a constant literal, replace the node with a
         # literal value that is the result of the unary operator
-        pass
+        node = self.visit(node.expr)
+        if isinstance(node.expr, exprast.Literal):
+            foldop = node.check_type.unary_folds[node.op]
+            replacement = exprast.Literal(foldop(node.expr.value))
+            if self.debug:
+                print("Folding {} =>\n\t{}".format(node, replacement))
+            return replacement
+        return node
 
     def visit_LoadLocation(self,node):
         # If the lookup location is a constant (found in symbol table),
         # replace the node with a Literal node that has the value of the constant
-        pass
-
+        sym = self.symtab.lookup(node.location.name)
+        if sym is not None and isinstance(sym, exprast.ConstDeclaration):
+            return sym.expr
+        return node
 
     def visit_ConstDeclaration(self,node):
         # Delete the node by returning nothing.   Constants are held in the symbol table,
         # but do not need to be emitted.
-        pass
+        node = self.visit(node.expr)
+        return node
 
 # STEP 3 : Testing
 #
@@ -121,11 +143,11 @@ class ConstantFolder(exprast.NodeTransformer):
 #                       DO NOT MODIFY ANYTHING BELOW       
 # ----------------------------------------------------------------------
 
-def fold_constants(node):
+def fold_constants(node, debug=False):
     '''
     Perform constant folding optimization on the AST.
     '''
-    return ConstantFolder().visit(node)
+    return ConstantFolder(debug=debug).visit(node)
 
 if __name__ == '__main__':
     import exprlex
@@ -145,10 +167,10 @@ if __name__ == '__main__':
         # If no errors occurred, generate code
         if not errors_reported():
             # Perform constant constants
-            program = fold_constants(program)
+            program = fold_constants(program, debug=True)
             # Create 3-address IR
-            exprcode.generate_code(program)
+            code = exprcode.generate_code(program)
             # Generate Python code output
-            exprpygen.emit_pycode("main", program.code)
+            exprpygen.emit_pycode("main", code)
             print("if __name__ == '__main__':")
             print("     main()")

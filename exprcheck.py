@@ -86,7 +86,6 @@ A shell of the code is provided below.
 from errors import error
 from exprast import *
 from exprtype import IntType, FloatType, StringType, ExprType
-from collections import defaultdict
 
 class SymbolTable(dict):
     '''
@@ -144,6 +143,7 @@ class CheckProgramVisitor(NodeVisitor):
             return left.check_type
 
     def visit_Program(self,node):
+        node.symtab = self.symtab
         # 1. Visit all of the statements
         for statement in node.statements.statements:
             self.visit(statement)
@@ -217,6 +217,10 @@ class CheckProgramVisitor(NodeVisitor):
             node.check_type = node.typename.check_type
         # 4. If there is no expression, set an initial value for the value
         self.visit(node.expr)
+        if node.expr is None:
+            default = node.check_type.default
+            node.expr = Literal(default)
+            node.expr.check_type = node.check_type
 
     def visit_Typename(self,node):
         # 1. Make sure the typename is valid and that it's actually a type

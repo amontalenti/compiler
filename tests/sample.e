@@ -1,8 +1,6 @@
-/* Sample Expr Program */
-
     const pi = 3.14159;
     const e = 2.71828;
-    const twopi = 2*pi;
+    const twopi = 2.0*pi;
     var x int;
     var y int = 23*45;
     var w int;
@@ -11,13 +9,10 @@
 
     print twopi;
     print x;
-    x = 37;
-    print (x/2)*pi;
+    x = 37.0;
+    print (x/2.0)*pi;
 
     const a = "Hello";
     var b string;
     b = a + "World";
     print b;
-
-    print x+z;
-

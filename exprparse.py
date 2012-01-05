@@ -28,10 +28,19 @@ print_statement : PRINT expression ;
 
 expression :  + expression
            |  - expression
+           |  ! expression
            | expression + expression
            | expression - expression
            | expression * expression
            | expression / expression
+           | expression > expression
+           | expression >= expression
+           | expression < expression
+           | expression <= expression
+           | expression == expression
+           | expression != expression
+           | expression && expression
+           | expression || expression
            | ( expression )
            | location
            | literal
@@ -39,6 +48,7 @@ expression :  + expression
 literal : INTEGER     
         | FLOAT       
         | STRING      
+        | BOOL
 
 location : ID
 
@@ -78,6 +88,9 @@ from exprast import *
 # precedence rules as in Python.  Instructions to be given in the project.
 # See http://www.dabeaz.com/ply/ply.html#ply_nn27
 precedence = (
+    ('left', 'LOR'),
+    ('left', 'LAND'),
+    ('nonassoc', 'GT', 'GTE', 'LT', 'LTE', 'EQ', 'NEQ'),
     ('left','PLUS','MINUS'),
     ('left','TIMES','DIVIDE'),
     ('right','UNARY'),
@@ -183,6 +196,7 @@ def p_expression_unary(p):
     '''
     expression : PLUS expression %prec UNARY
                | MINUS expression %prec UNARY
+               | NOT expression %prec UNARY
     '''
     p[0] = Unaryop(p[1],p[2],lineno=p.lineno(1))
 
@@ -194,6 +208,19 @@ def p_expression_binary(p):
                | expression DIVIDE expression
     '''
     p[0] = Binop(p[2],p[1],p[3],lineno=p.lineno(2))
+
+def p_expression_rel(p):
+    '''
+    expression : expression GT expression
+               | expression GTE expression
+               | expression LT expression
+               | expression LTE expression
+               | expression EQ expression
+               | expression NEQ expression
+               | expression LAND expression
+               | expression LOR expression
+    '''
+    p[0] = Relop(p[2],p[1],p[3],lineno=p.lineno(2))
 
 def p_expression_group(p):
     '''
@@ -218,6 +245,7 @@ def p_literal(p):
     literal : INTEGER
             | FLOAT
             | STRING
+            | BOOL
     '''
     p[0] = Literal(p[1],lineno=p.lineno(1))
 

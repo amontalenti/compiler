@@ -106,7 +106,7 @@ from ply.lex import lex
 
 tokens = [
     # keywords
-    'ID','CONST','VAR','PRINT',
+    'ID','CONST','VAR','PRINT', 'IF', 'ELSE', 'WHILE',
 
     # Operators and delimiters
     'PLUS','MINUS','TIMES','DIVIDE',
@@ -119,7 +119,10 @@ tokens = [
     'LT', 'GT', 'LTE', 'GTE', 'EQ', 'NEQ',
 
     # Boolean operators
-    'LAND', 'LOR', 'NOT'
+    'LAND', 'LOR', 'NOT',
+
+    # Curly braces
+    'LCURL', 'RCURL'
 ]
 
 # ----------------------------------------------------------------------
@@ -152,6 +155,8 @@ t_NEQ       = r'!='
 t_LAND      = r'&&'
 t_LOR       = r'\|\|'
 t_NOT       = r'!'
+t_LCURL     = r'\{'
+t_RCURL     = r'\}'
 
 # ----------------------------------------------------------------------
 # *** YOU MUST COMPLETE : write the regexs and additional code below ***
@@ -267,7 +272,7 @@ def t_STRING(t):
 # Match a raw identifier.  Identifiers follow the same rules as Python.
 # That is, they start with a letter or underscore (_) and can contain
 # an arbitrary number of letters, digits, or underscores after that.
-keywords = {"var", "const", "print"}
+keywords = {"var", "const", "print", "if", "else", "while"}
 def t_ID(t):
     r'[_A-Za-z][_A-Za-z0-9]*'
     if t.value in keywords:

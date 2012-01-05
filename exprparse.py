@@ -6,8 +6,10 @@ In this project, you write the basic shell of a parser for the expression
 language.  A formal BNF of the language follows.  Your task is to write
 parsing rules and build the AST for this grammar using PLY.
 
-program : statements
-        | empty
+program : basicblock
+
+basicblock : statements
+           | empty
 
 statements :  statements statement
            |  statement
@@ -16,6 +18,12 @@ statement :  const_declaration
           |  var_declaration
           |  assign_statement
           |  print_statement
+
+if_statement : if expression { basicblock }
+
+if_else_statement : if expression { basicblock } else { basicblock }
+
+while_statement : while expression { basicblock }
 
 const_declaration : CONST identifier = expression ;
 
@@ -127,25 +135,32 @@ precedence = (
 #     p[0] = PrintStatement(p[2],lineno=p.lineno(1))
 #
 
-def p_program(p):
-    '''
-    program : statements
-    '''
-    p[0] = Program(p[1])
-
 def p_program_empty(p):
     '''
     program : empty
     '''
     p[0] = Program(None)
 
+def p_program(p):
+    '''
+    program : basicblock
+    '''
+    p[0] = Program(p[1])
+    
+def p_basicblock(p):
+    '''
+    basicblock : statements
+               | empty
+    '''
+    p[0] = p[1]
+
 def p_statements(p):
     '''
-    statements :  statements statement
+    statements : statements statement
     '''
     p[0] = p[1]
     p[0].append(p[2])
-    
+
 def p_statements_1(p):
     '''
     statements : statement
@@ -159,8 +174,29 @@ def p_statement(p):
               |  var_declaration
               |  assign_statement
               |  print_statement
+              |  if_statement
+              |  if_else_statement
+              |  while_statement
     '''
     p[0] = p[1]
+
+def p_if_statement(p):
+    '''
+    if_statement : IF expression LCURL basicblock RCURL
+    '''
+    p[0] = IfStatement(p[2], p[4], None)
+
+def p_if_else_statement(p):
+    '''
+    if_else_statement : IF expression LCURL basicblock RCURL ELSE LCURL basicblock RCURL
+    '''
+    p[0] = IfStatement(p[2], p[4], p[8])
+
+def p_while_statement(p):
+    '''
+    while_statement : WHILE expression LCURL basicblock RCURL
+    '''
+    p[0] = WhileStatement(p[1], p[2])
 
 def p_const_declaration(p):
     '''

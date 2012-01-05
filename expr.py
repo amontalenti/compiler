@@ -21,7 +21,7 @@ if __name__ == '__main__':
         # If no errors occurred, generate code
         if not errors_reported():
             # Fold constants
-            program = exprconst.fold_constants(program, debug=False)
+            program = exprconst.fold_constants(program)
             # Generate 3 address code IR
             code = exprcode.generate_code(program)
             # Emit Python code

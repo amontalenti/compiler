@@ -96,6 +96,12 @@ class VarDeclaration(AST):
 class ConstDeclaration(AST):
     _fields = ['name','expr']          
     
+class IfStatement(AST):
+    _fields = ['expr', 'truebranch', 'falsebranch']
+
+class WhileStatement(AST):
+    _fields = ['expr', 'truebranch']
+
 
 # ----------------------------------------------------------------------
 #                  DO NOT MODIFY ANYTHING BELOW HERE

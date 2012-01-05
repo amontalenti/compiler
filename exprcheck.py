@@ -85,7 +85,7 @@ A shell of the code is provided below.
 
 from errors import error
 from exprast import *
-from exprtype import IntType, FloatType, StringType, ExprType
+from exprtype import IntType, FloatType, StringType, BoolType, ExprType
 
 class SymbolTable(dict):
     '''
@@ -113,12 +113,14 @@ class CheckProgramVisitor(NodeVisitor):
         self.symtab.update({
             "int": IntType,
             "float": FloatType,
-            "string": StringType
+            "string": StringType,
+            "bool": BoolType
         })
         self.typemap = {
             int: IntType, 
             float: FloatType, 
-            str: StringType
+            str: StringType,
+            bool: BoolType
         }
 
     def check_type_unary(self, node, op, val):
@@ -130,7 +132,7 @@ class CheckProgramVisitor(NodeVisitor):
     def check_type_binary(self, node, op, left, right):
         if hasattr(left, "check_type") and hasattr(right, "check_type"):
             if left.check_type != right.check_type:
-                error(node.lineno, "Binary operation {} does not have matching LHS/RHS types".format(op))
+                error(node.lineno, "Binary operator {} does not have matching LHS/RHS types".format(op))
                 return left.check_type
             errside = None
             if op not in left.check_type.binary_ops:
@@ -141,6 +143,21 @@ class CheckProgramVisitor(NodeVisitor):
                 error(node.lineno, "Binary operator {} not supported on {} of expression".format(op, errside))
             # XXX: right now we just propagate the left type, but we should probably handle error conditions
             return left.check_type
+
+    def check_type_rel(self, node, op, left, right):
+        if hasattr(left, "check_type") and hasattr(right, "check_type"):
+            if left.check_type != right.check_type:
+                error(node.lineno, "Relational operator {} does not have matching LHS/RHS types".format(op))
+                return left.check_type
+            errside = None
+            if op not in left.check_type.rel_ops:
+                errside = "LHS"
+            if op not in right.check_type.rel_ops:
+                errside = "RHS"
+            if errside is not None:
+                error(node.lineno, "Relational operator {} not supported on {} of expression".format(op, errside))
+            # XXX: right now we just propagate the left type, but we should probably handle error conditions
+            return BoolType
 
     def visit_Program(self,node):
         node.symtab = self.symtab
@@ -166,6 +183,16 @@ class CheckProgramVisitor(NodeVisitor):
         self.visit(node.left)
         self.visit(node.right)
         check_type = self.check_type_binary(node, node.op, node.left, node.right)
+        # 3. Assign the result type
+        node.check_type = check_type
+
+    def visit_Relop(self,node):
+        # 1. Make sure left and right operands have the same type
+        # 2. Make sure the operation is supported
+        # AM note: both are done in check_type_binary
+        self.visit(node.left)
+        self.visit(node.right)
+        check_type = self.check_type_rel(node, node.op, node.left, node.right)
         # 3. Assign the result type
         node.check_type = check_type
 

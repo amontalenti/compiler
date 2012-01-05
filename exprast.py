@@ -68,6 +68,9 @@ class Unaryop(AST):
 class Binop(AST):
     _fields = ['op','left','right']          
     
+class Relop(AST):
+    _fields = ['op','left','right']          
+    
 class AssignmentStatement(AST):
     _fields = ['location','expr']          
 

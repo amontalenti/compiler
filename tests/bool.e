@@ -1,0 +1,12 @@
+var a bool = true;
+var b bool = !a;
+b = 5 < 6;
+b = 5 <= 6;
+b = 5 >= 6;
+b = 5 > 6;
+b = 5 > 6
+b = b && b;
+b = b || a;
+var d str = "Hello";
+d = d != b;
+d = d == b;

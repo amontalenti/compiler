@@ -113,7 +113,13 @@ tokens = [
     'ASSIGN', 'SEMI', 'LPAREN', 'RPAREN',
     
     # Literals
-    'INTEGER', 'FLOAT', 'STRING',
+    'INTEGER', 'FLOAT', 'STRING', 'BOOL',
+
+    # Relations
+    'LT', 'GT', 'LTE', 'GTE', 'EQ', 'NEQ',
+
+    # Boolean operators
+    'LAND', 'LOR', 'NOT'
 ]
 
 # ----------------------------------------------------------------------
@@ -137,6 +143,15 @@ t_ASSIGN    = r'='
 t_SEMI      = r';'
 t_LPAREN    = r'\('
 t_RPAREN    = r'\)'
+t_LT        = r'\<'
+t_GT        = r'\>'
+t_LTE       = r'\<='
+t_GTE       = r'\>='
+t_EQ        = r'=='
+t_NEQ       = r'!='
+t_LAND      = r'&&'
+t_LOR       = r'\|\|'
+t_NOT       = r'!'
 
 # ----------------------------------------------------------------------
 # *** YOU MUST COMPLETE : write the regexs and additional code below ***
@@ -177,6 +192,12 @@ def t_INTEGER(t):
         t.value = int(t.value,8)
     else:
         t.value = int(t.value)
+    return t
+
+def t_BOOL(t):
+    r'(true|false)'
+    mapping = {"true": True, "false": False}
+    t.value = mapping[t.value]
     return t
 
 # String constant. You must recognize text enclosed in quotes.

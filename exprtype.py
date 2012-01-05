@@ -38,7 +38,7 @@ class ExprType(object):
     def __init__(self, typename, default, 
                  unary_opcodes=None, binary_opcodes=None, 
                  binary_ops=None, unary_ops=None,
-                 binary_folds=None, unary_folds=None,
+                 binary_folds=None, unary_folds=None, rel_folds=None,
                  rel_ops=None, rel_opcodes=None):
         '''
         You must implement yourself and figure out what to store.
@@ -53,6 +53,7 @@ class ExprType(object):
         self.binary_folds = binary_folds or set()
         self.rel_ops = rel_ops or set()
         self.rel_opcodes = rel_opcodes or {}
+        self.rel_folds = rel_folds or {}
 
     def __repr__(self):
         return "ExprType({})".format(self.typename)
@@ -65,7 +66,9 @@ IntType = ExprType("int", int(),
     binary_folds={"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.floordiv},
     unary_folds={"+": operator.pos, "-": operator.neg},
     rel_ops={"==", "!=", "<", ">", "<=", ">="},
-    rel_opcodes={"==": "eq", "!=": "neq", ">": "gt", "<": "lt", ">=": "gte", "<=": "lte"}
+    rel_opcodes={"==": "eq", "!=": "neq", ">": "gt", "<": "lt", ">=": "gte", "<=": "lte"},
+    rel_folds={"==": operator.eq, "!=": operator.ne, ">": operator.gt, ">=": operator.ge,
+               "<": operator.lt, "<=": operator.le}
 )
 FloatType = ExprType("float", float(), 
     binary_ops={"+", "-", "*", "/"}, 
@@ -75,18 +78,23 @@ FloatType = ExprType("float", float(),
     binary_folds={"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.floordiv},
     unary_folds={"+": operator.pos, "-": operator.neg},
     rel_ops={"==", "!=", "<", ">", "<=", ">="},
-    rel_opcodes={"==": "eq", "!=": "neq", ">": "gt", "<": "lt", ">=": "gte", "<=": "lte"}
+    rel_opcodes={"==": "eq", "!=": "neq", ">": "gt", "<": "lt", ">=": "gte", "<=": "lte"},
+    rel_folds={"==": operator.eq, "!=": operator.ne, ">": operator.gt, ">=": operator.ge,
+               "<": operator.lt, "<=": operator.le}
 )
 StringType = ExprType("string", str(), 
     binary_ops={"+"},
     binary_opcodes={"+": "add"},
     binary_folds={"+": operator.add},
     rel_ops={"==", "!="},
-    rel_opcodes={"==": "eq", "!=": "neq"}
+    rel_opcodes={"==": "eq", "!=": "neq"},
+    rel_folds={"==": operator.eq, "!=": operator.ne}
 )
 BoolType = ExprType("bool", bool(),
     unary_ops={"!"},
     rel_ops={"==", "!=", "&&", "||"},
     rel_opcodes={"==": "eq", "!=": "neq", "&&": "land", "||": "lor"},
-    unary_opcodes={"!": "not"}
+    rel_folds={"==": operator.eq, "!=": operator.ne, "&&": operator.and_, "||": operator.or_},
+    unary_opcodes={"!": "not"},
+    unary_folds={"!": operator.not_}
 )

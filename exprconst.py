@@ -97,6 +97,20 @@ class ConstantFolder(exprast.NodeTransformer):
             return replacement
         return node
 
+    def visit_Relop(self,node):
+        # If both the left and right are constant literals, replace the node
+        # with a literal value that is the result of the binary operator
+        node.left = self.visit(node.left)
+        node.right = self.visit(node.right)
+        if isinstance(node.left, exprast.Literal) and isinstance(node.right, exprast.Literal):
+            foldop = node.left.check_type.rel_folds[node.op]
+            replacement = exprast.Literal(foldop(node.left.value, node.right.value))
+            replacement.check_type = node.check_type
+            if self.debug:
+                print("Folding {} =>\n\t{}".format(node, replacement))
+            return replacement
+        return node
+
     def visit_Unaryop(self,node):
         # If the operand is a constant literal, replace the node with a
         # literal value that is the result of the unary operator

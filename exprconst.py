@@ -114,14 +114,17 @@ class ConstantFolder(exprast.NodeTransformer):
         # replace the node with a Literal node that has the value of the constant
         sym = self.symtab.lookup(node.location.name)
         if sym is not None and isinstance(sym, exprast.ConstDeclaration):
-            return sym.expr
+            node = self.visit(sym.expr)
+            if self.debug:
+                print("Replacing const ref with expr {} =>\n\t{}".format(
+                    sym, node))
         return node
 
     def visit_ConstDeclaration(self,node):
         # Delete the node by returning nothing.   Constants are held in the symbol table,
         # but do not need to be emitted.
         node = self.visit(node.expr)
-        return node
+        return None
 
 # STEP 3 : Testing
 #

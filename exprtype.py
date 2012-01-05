@@ -87,5 +87,6 @@ StringType = ExprType("string", str(),
 BoolType = ExprType("bool", bool(),
     unary_ops={"!"},
     rel_ops={"==", "!=", "&&", "||"},
-    rel_opcodes={"==": "eq", "!=": "neq", "&&": "land", "||": "lor"}
+    rel_opcodes={"==": "eq", "!=": "neq", "&&": "land", "||": "lor"},
+    unary_opcodes={"!": "not"}
 )

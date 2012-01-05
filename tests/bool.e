@@ -10,3 +10,4 @@ b = b || a;
 var s string = "Hello";
 b = s != "Foo";
 b = s == "Foo";
+print b;

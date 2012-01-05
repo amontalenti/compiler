@@ -112,6 +112,54 @@ class ExprPyCodeEmitter(CodeEmitter):
     emit_imul = emit_mul
     emit_fmul = emit_mul
 
+    def emit_gt(self,left,right,target):
+         '''
+         target = left > right
+         '''
+         return "%s = %s > %s" % (target, left, right)
+
+    def emit_gte(self,left,right,target):
+         '''
+         target = left >= right
+         '''
+         return "%s = %s >= %s" % (target, left, right)
+
+    def emit_lt(self,left,right,target):
+         '''
+         target = left < right
+         '''
+         return "%s = %s < %s" % (target, left, right)
+
+    def emit_lte(self,left,right,target):
+         '''
+         target = left <= right
+         '''
+         return "%s = %s <= %s" % (target, left, right)
+
+    def emit_eq(self,left,right,target):
+         '''
+         target = left == right
+         '''
+         return "%s = %s == %s" % (target, left, right)
+
+    def emit_neq(self,left,right,target):
+         '''
+         target = left != right
+         '''
+         return "%s = %s != %s" % (target, left, right)
+
+    def emit_land(self,left,right,target):
+         '''
+         target = left && right
+         '''
+         return "%s = %s and %s" % (target, left, right)
+
+    def emit_lor(self,left,right,target):
+         '''
+         target = left || right
+         '''
+         return "%s = %s or %s" % (target, left, right)
+
     def emit_idiv(self,left,right,target):
          '''
          target = left / right     (with integer truncation)
@@ -134,7 +182,13 @@ class ExprPyCodeEmitter(CodeEmitter):
          '''
          target = -source
          '''
-         return "%s = +%s" % (target, source)
+         return "%s = -%s" % (target, source)
+
+    def emit_not(self,source,target):
+         '''
+         target = !source
+         '''
+         return "%s = not %s" % (target, source)
 
     def emit_print(self,source):
          '''

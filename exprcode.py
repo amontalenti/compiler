@@ -73,8 +73,15 @@ Your 3-address code is only allowed to use the following operators:
        ('mul',left,right,target)      # target = left * right
        ('idiv',left,right,target)     # target = left / right  (integer truncation)
        ('fdiv',left,right,target)     # target = left / right (floating point)
+       ('eq',left,right,target)       # target = left == right
+       ('neq',left,right,target)      # target = left != right
+       ('gt',left,right,target)       # target = left > right
+       ('gte',left,right,target)      # target = left >= right
+       ('lt',left,right,target)       # target = left < right
+       ('lte',left,right,target)      # target = left <= right
        ('uadd',source,target)         # target = +source
        ('uneg',source,target)         # target = -source
+       ('not',source,target)          # target = !source
        ('print',source)               # Print value of source
 
 When emitting 3-address code, you should never reuse names for temporary
@@ -158,6 +165,15 @@ class GenerateCode(exprast.NodeVisitor):
         self.visit(node.right)
         target = self.new_temp(node.check_type)
         instruction = node.check_type.binary_opcodes[node.op]
+        inst = (instruction, node.left.gen_location, node.right.gen_location, target)
+        self.code.append(inst)
+        node.gen_location = target
+
+    def visit_Relop(self, node):
+        self.visit(node.left)
+        self.visit(node.right)
+        target = self.new_temp(node.check_type)
+        instruction = node.left.check_type.rel_opcodes[node.op]
         inst = (instruction, node.left.gen_location, node.right.gen_location, target)
         self.code.append(inst)
         node.gen_location = target

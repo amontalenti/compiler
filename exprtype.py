@@ -59,7 +59,7 @@ IntType = ExprType("int", int(),
     unary_ops={"+", "-"},
     binary_opcodes={"+": "add", "-": "sub", "*": "imul", "/": "idiv"},
     unary_opcodes={"+": "uadd", "-": "uneg"},
-    binary_folds={"+": operator.add, "-": operator.sub, "*": operator.sub, "/": operator.floordiv},
+    binary_folds={"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.floordiv},
     unary_folds={"+": operator.pos, "-": operator.neg}
 )
 FloatType = ExprType("float", float(), 
@@ -67,7 +67,7 @@ FloatType = ExprType("float", float(),
     unary_ops={"+", "-"},
     binary_opcodes={"+": "add", "-": "sub", "*": "fmul", "/": "fdiv"},
     unary_opcodes={"+": "uadd", "-": "uneg"},
-    binary_folds={"+": operator.add, "-": operator.sub, "*": operator.sub, "/": operator.floordiv},
+    binary_folds={"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.floordiv},
     unary_folds={"+": operator.pos, "-": operator.neg}
 )
 StringType = ExprType("string", str(), 

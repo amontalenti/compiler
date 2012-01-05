@@ -8,6 +8,7 @@ if __name__ == '__main__':
     import exprcheck
     import exprcode
     import exprpygen
+    import exprconst
 
     import sys
     from errors import subscribe_errors, errors_reported
@@ -19,7 +20,11 @@ if __name__ == '__main__':
         exprcheck.check_program(program)
         # If no errors occurred, generate code
         if not errors_reported():
+            # Fold constants
+            program = exprconst.fold_constants(program, debug=True)
+            # Generate 3 address code IR
             code = exprcode.generate_code(program)
+            # Emit Python code
             exprpygen.emit_pycode("main", code)
             print("if __name__ == '__main__':")
             print("     main()")

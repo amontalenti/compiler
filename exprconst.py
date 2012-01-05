@@ -100,10 +100,11 @@ class ConstantFolder(exprast.NodeTransformer):
     def visit_Unaryop(self,node):
         # If the operand is a constant literal, replace the node with a
         # literal value that is the result of the unary operator
-        node = self.visit(node.expr)
+        node.expr = self.visit(node.expr)
         if isinstance(node.expr, exprast.Literal):
             foldop = node.check_type.unary_folds[node.op]
             replacement = exprast.Literal(foldop(node.expr.value))
+            replacement.check_type = node.check_type
             if self.debug:
                 print("Folding {} =>\n\t{}".format(node, replacement))
             return replacement

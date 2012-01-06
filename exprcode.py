@@ -183,8 +183,6 @@ class GenerateCode(exprast.NodeVisitor):
 
     def visit_VarDeclaration(self, node):
         self.visit(node.expr)
-        if not hasattr(node.expr, "gen_location"):
-            import pdb; pdb.set_trace()
         inst = ("newvar", node.expr.gen_location, node.name)
         self.code.append(inst)
 
@@ -204,15 +202,16 @@ class GenerateCode(exprast.NodeVisitor):
         self.code.append(inst)
 
     def visit_IfStatement(self, node):
-        import pdb; pdb.set_trace()
+        print("visiting %r" % node)
         self.visit(node.expr)
         ifblock = exprblock.IfBlock()
         self.code.next = ifblock
-        self.code = exprblock.BasicBlock()
         ifblock.truebranch = exprblock.BasicBlock()
+        self.code = ifblock.truebranch
         self.visit(node.truebranch)
         if node.falsebranch is not None:
             ifblock.falsebranch = exprblock.BasicBlock()
+            self.code = ifblock.falsebranch
             self.visit(node.falsebranch)
         # Done expanding if statement, now link to a fresh block
         self.code = exprblock.BasicBlock()
@@ -222,8 +221,9 @@ class GenerateCode(exprast.NodeVisitor):
         self.visit(node.expr)
         whileblock = exprblock.WhileBlock()
         self.code.next = whileblock
-        self.code = exprblock.BasicBlock()
         whileblock.truebranch = exprblock.BasicBlock()
+        self.code = whileblock.truebranch
+        print("visiting %r" % node)
         self.visit(node.truebranch)
         # Done expanding while statement, now link to fresh block
         self.code = exprblock.BasicBlock()
@@ -250,6 +250,23 @@ def generate_code(node):
     gen.visit(node)
     return gen.program
 
+class PrintBlocks(exprblock.BlockVisitor):
+    def visit_BasicBlock(self,block):
+        print("Block:[%s]" % block)
+        for inst in block.instructions:
+            print("    %s" % (inst,))
+        print("")
+
+    def visit_IfBlock(self,block):
+        self.visit_BasicBlock(block)
+        self.visit(block.truebranch)
+        self.visit(block.falsebranch)
+
+    def visit_WhileBlock(self,block):
+        self.visit_BasicBlock(block)
+        self.visit(block.truebranch)
+
+
 if __name__ == '__main__':
     import exprlex
     import exprparse
@@ -265,7 +282,5 @@ if __name__ == '__main__':
         # If no errors occurred, generate code
         if not errors_reported():
             code = generate_code(program)
-            print(code)
             # Emit the code sequence
-            for inst in code:
-                print(inst)
+            PrintBlocks().visit(code)

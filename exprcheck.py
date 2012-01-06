@@ -204,6 +204,9 @@ class CheckProgramVisitor(NodeVisitor):
             # XXX: right now we just propagate the left type, but we should probably handle error conditions
             return BoolType
 
+    def inside_function(self):
+        return self.environment.scope_level() > 1
+
     def visit_Program(self,node):
         node.environment = self.environment
         node.symtab = self.environment.peek()
@@ -242,6 +245,9 @@ class CheckProgramVisitor(NodeVisitor):
         node.check_type = check_type
 
     def visit_AssignmentStatement(self,node):
+        if not self.inside_function():
+            error(node.lineno, "Cannot assign variable '{}' outside function body".format(node.location.name))
+            return
         # 1. Make sure the location of the assignment is defined
         sym = self.environment.lookup(node.location.name)
         if not sym:
@@ -267,6 +273,9 @@ class CheckProgramVisitor(NodeVisitor):
                 error(node.lineno, "Cannot assign {} to {}".format(value_type, declared_type))
 
     def visit_IfStatement(self,node):
+        if not self.inside_function():
+            error(node.lineno, "Cannot use if statement outside function body")
+            return
         self.visit(node.expr)
         if node.expr.check_type != BoolType:
             error(node.lineno, "Expression in if statement must evaluate to bool")
@@ -275,12 +284,16 @@ class CheckProgramVisitor(NodeVisitor):
             self.visit(node.falsebranch)
 
     def visit_WhileStatement(self,node):
+        if not self.inside_function():
+            error(node.lineno, "Cannot use while statement outside function body")
+            return
         self.visit(node.expr)
         if node.expr.check_type != BoolType:
             error(node.lineno, "Expression in while statement must evaluate to bool")
         self.visit(node.truebranch)
 
     def visit_ConstDeclaration(self,node):
+        node.scope_level = self.environment.scope_level()
         # 1. Check that the constant name is not already defined
         if self.environment.lookup(node.name) is not None:
             error(node.lineno, "Attempted to redefine const '{}', not allowed".format(node.name))
@@ -288,7 +301,6 @@ class CheckProgramVisitor(NodeVisitor):
         self.environment.add_local(node.name, node)
         self.visit(node.expr)
         node.check_type = node.expr.check_type
-        node.scope_level = self.environment.scope_level()
 
     def visit_FuncStatement(self, node):
         # 1. Check that the variable name is not already defined
@@ -318,8 +330,13 @@ class CheckProgramVisitor(NodeVisitor):
     def visit_FuncParameter(self, node):
         self.environment.add_local(node.name, node)
         node.scope_level = self.environment.scope_level()
+        self.visit(node.typename)
+        node.check_type = node.typename.check_type
 
     def visit_FuncCall(self, node):
+        if not self.inside_function():
+            error(node.lineno, "Cannot call function from outside function body; see main() for entry point")
+            return
         sym = self.environment.lookup(node.name)
         if not sym:
             error(node.lineno, "Function name '{}' not found".format(node.name))
@@ -327,6 +344,32 @@ class CheckProgramVisitor(NodeVisitor):
         if not isinstance(sym, FuncStatement):
             error(node.lineno, "Tried to call non-function '{}'".format(node.name))
             return
+        if len(sym.parameters) != len(node.arguments):
+            error(node.lineno, "Number of arguments for call to function '{}' do not match function parameter declaration on line {}".format(node.name, sym.lineno))
+        self.visit(node.arguments)
+        argerrors = False
+        for arg, parm in zip(node.arguments.arguments, sym.parameters.parameters):
+            if arg.check_type != parm.check_type:
+                error(node.lineno, "Argument type '{}' does not match parameter type '{}' in function call to '{}'".format(arg.check_type.typename, parm.check_type.typename, node.name))
+                argerrors = True
+            if argerrors:
+                return
+
+    def visit_FuncCallArguments(self, node):
+        for argument in node.arguments:
+            self.visit(argument)
+
+    def visit_ReturnStatement(self, node):
+        self.visit(node.expr)
+        if self.environment.peek().return_type() != node.expr.check_type:
+            error(node.lineno, "Type of return statement expression does not match declared return type for function")
+            return
+
+    def visit_PrintStatement(self, node):
+        if not self.inside_function():
+            error(node.lineno, "Cannot use print statement outside function body")
+            return
+        self.visit(node.expr)
 
     def visit_VarDeclaration(self,node):
         # 1. Check that the variable name is not already defined

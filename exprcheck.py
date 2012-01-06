@@ -89,18 +89,66 @@ A shell of the code is provided below.
 from errors import error
 from exprast import *
 from exprtype import IntType, FloatType, StringType, BoolType, ExprType
+from pprint import pprint
 
 class SymbolTable(dict):
     '''
     Class representing a symbol table.  It should provide functionality
     for adding and looking up nodes associated with identifiers.
     '''
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, decl=None):
+        super().__init__()
+        self.decl = decl
     def add(self, name, value):
         self[name] = value
     def lookup(self, name):
         return self.get(name, None)
+    def return_type(self):
+        if self.decl:
+            return self.decl.returntype
+        return None
+
+class Environment(object):
+    def __init__(self):
+        self.stack = []
+        self.root = SymbolTable()
+        self.stack.append(self.root)
+        self.root.update({
+            "int": IntType,
+            "float": FloatType,
+            "string": StringType,
+            "bool": BoolType
+        })
+
+    def push(self, enclosure):
+        self.stack.append(SymbolTable(decl=enclosure))
+
+    def pop(self):
+        self.stack.pop()
+
+    def peek(self):
+        return self.stack[-1]
+
+    def scope_level(self):
+        return len(self.stack)
+
+    def add_local(self, name, value):
+        self.peek().add(name, value)
+
+    def add_root(self, name, value):
+        self.root.add(name, value)
+
+    def lookup(self, name):
+        for scope in reversed(self.stack):
+            hit = scope.lookup(name)
+            if hit is not None:
+                return hit
+        return None
+
+    def print(self):
+        for indent, scope in enumerate(reversed(self.stack)):
+            print("Scope for {}".format("ROOT" if scope.decl is None else scope.decl))
+            pprint(scope, indent=indent*4, width=20)
 
 class CheckProgramVisitor(NodeVisitor):
     '''
@@ -112,13 +160,7 @@ class CheckProgramVisitor(NodeVisitor):
     picked different names.
     '''
     def __init__(self):
-        self.symtab = SymbolTable()
-        self.symtab.update({
-            "int": IntType,
-            "float": FloatType,
-            "string": StringType,
-            "bool": BoolType
-        })
+        self.environment = Environment()
         self.typemap = {
             int: IntType, 
             float: FloatType, 
@@ -163,13 +205,14 @@ class CheckProgramVisitor(NodeVisitor):
             return BoolType
 
     def visit_Program(self,node):
-        node.symtab = self.symtab
+        node.environment = self.environment
+        node.symtab = self.environment.peek()
         # 1. Visit all of the statements
         for statement in node.statements.statements:
             self.visit(statement)
             # 2. Record the associated symbol table
             if isinstance(statement, AssignmentStatement):
-                self.symtab.add(statement.location.name, statement.expr)
+                self.environment.add_local(statement.location.name, statement.expr)
 
     def visit_Unaryop(self,node):
         self.visit(node.expr)
@@ -177,7 +220,6 @@ class CheckProgramVisitor(NodeVisitor):
         check_type = self.check_type_unary(node, node.op, node.expr)
         # 2. Set the result type to the same as the operand
         node.check_type = check_type
-
 
     def visit_Binop(self,node):
         # 1. Make sure left and right operands have the same type
@@ -201,7 +243,7 @@ class CheckProgramVisitor(NodeVisitor):
 
     def visit_AssignmentStatement(self,node):
         # 1. Make sure the location of the assignment is defined
-        sym = self.symtab.lookup(node.location.name)
+        sym = self.environment.lookup(node.location.name)
         if not sym:
             error(node.lineno, "name '{}' not defined".format(node.location.name))
         # 2. Check that assignment is allowed
@@ -240,20 +282,59 @@ class CheckProgramVisitor(NodeVisitor):
 
     def visit_ConstDeclaration(self,node):
         # 1. Check that the constant name is not already defined
-        if self.symtab.lookup(node.name) is not None:
+        if self.environment.lookup(node.name) is not None:
             error(node.lineno, "Attempted to redefine const '{}', not allowed".format(node.name))
         # 2. Add an entry to the symbol table
-        self.symtab.add(node.name, node)
+        self.environment.add_local(node.name, node)
         self.visit(node.expr)
         node.check_type = node.expr.check_type
+        node.scope_level = self.environment.scope_level()
+
+    def visit_FuncStatement(self, node):
+        # 1. Check that the variable name is not already defined
+        node.scope_level = self.environment.scope_level()
+        if node.scope_level > 1:
+            error(node.lineno, "Nested functions not implemented")
+            return
+        self.environment.push(node)
+        if self.environment.lookup(node.name) is not None:
+            error(node.lineno, "Attempted to redefine func '{}', not allowed".format(node.name))
+            return
+        # 2. Add an entry to the symbol table, and also create a nested symbol
+        # table for the function statement
+        self.environment.add_local(node.name, node)
+        # 3. Propagate the returntype as a checktype for the function, for 
+        # use in function call checking and return statement checking
+        if hasattr(node.returntype, "check_type"):
+            node.check_type = node.returntype.check_type
+        self.visit(node.parameters)
+        self.visit(node.expr)
+        self.environment.pop()
+
+    def visit_FuncParameterList(self, node):
+        for parameter in node.parameters:
+            self.visit(parameter)
+
+    def visit_FuncParameter(self, node):
+        self.environment.add_local(node.name, node)
+        node.scope_level = self.environment.scope_level()
+
+    def visit_FuncCall(self, node):
+        sym = self.environment.lookup(node.name)
+        if not sym:
+            error(node.lineno, "Function name '{}' not found".format(node.name))
+            return
+        if not isinstance(sym, FuncStatement):
+            error(node.lineno, "Tried to call non-function '{}'".format(node.name))
+            return
 
     def visit_VarDeclaration(self,node):
         # 1. Check that the variable name is not already defined
-        if self.symtab.lookup(node.name) is not None:
+        if self.environment.lookup(node.name) is not None:
             error(node.lineno, "Attempted to redefine var '{}', not allowed".format(node.name))
             return
         # 2. Add an entry to the symbol table
-        self.symtab.add(node.name, node)
+        self.environment.add_local(node.name, node)
         # 3. Check that the type of the expression (if any) is the same
         self.visit(node.typename)
         # propagate check_type from Typename up to Var declaration
@@ -265,10 +346,11 @@ class CheckProgramVisitor(NodeVisitor):
             default = node.check_type.default
             node.expr = Literal(default)
             node.expr.check_type = node.check_type
+        node.scope_level = self.environment.scope_level()
 
     def visit_Typename(self,node):
         # 1. Make sure the typename is valid and that it's actually a type
-        sym = self.symtab.lookup(node.name)
+        sym = self.environment.lookup(node.name)
         if not isinstance(sym, ExprType):
             error(node.lineno, "{} is not a valid type".format(node.name))
             return
@@ -276,15 +358,15 @@ class CheckProgramVisitor(NodeVisitor):
 
     def visit_Location(self,node):
         # 1. Make sure the location is a valid variable or constant value
-        sym = self.symtab.lookup(node.name)
+        sym = self.environment.lookup(node.name)
         if not sym:
             error(node.lineno, "name '{}' not found".format(node.name))
         # 2. Assign the type of the location to the node
         node.check_type = sym.check_type
 
     def visit_LoadLocation(self, node):
-        # 1. Make sure the loaded location is valid.
-        sym = self.symtab.lookup(node.location.name)
+        # 1. Make sure the loaded location is valid
+        sym = self.environment.lookup(node.location.name)
         if not sym:
             error(node.lineno, "name '{}' not found".format(node.location.name))
             return
@@ -327,4 +409,5 @@ if __name__ == '__main__':
         program = parser.parse(open(sys.argv[1]).read())
         # Check the program
         check_program(program)
+        #program.environment.print()
             

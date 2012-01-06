@@ -224,7 +224,7 @@ def p_func_call(p):
     '''
     func_call : ID LPAREN arguments RPAREN SEMI
     '''
-    p[0] = FuncCall(p[1], p[3])
+    p[0] = FuncCall(p[1], p[3], lineno=p.lineno(1))
 
 def p_arguments(p):
     '''
@@ -278,7 +278,7 @@ def p_func_statement(p):
     '''
     func_statement : FUNC ID typename LPAREN parameters RPAREN LCURL basicblock RCURL
     '''
-    p[0] = FuncStatement(p[2], p[3], p[5], p[8])
+    p[0] = FuncStatement(p[2], p[3], p[5], p[8], lineno=p.lineno(1))
 
 def p_return_statement(p):
     '''

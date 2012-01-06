@@ -112,6 +112,7 @@ generation class. Here is a rough idea of how it should work:
 
 import exprtype
 import exprast
+import exprblock
 
 # STEP 2: Implement the following Node Visitor class so that it creates
 # a sequence of three-address code instructions and attaches it to
@@ -127,7 +128,9 @@ class GenerateCode(exprast.NodeVisitor):
 
     def visit_Program(self,node):
         # Reset the sequence of instructions and temporary count
-        self.code = []
+
+        self.code = exprblock.BasicBlock()
+        self.program = self.code
         self.temp_count = 0
         # Visit all of the statements in the program
         self.visit(node.statements)
@@ -200,6 +203,32 @@ class GenerateCode(exprast.NodeVisitor):
         inst = ("print", node.expr.gen_location)
         self.code.append(inst)
 
+    def visit_IfStatement(self, node):
+        import pdb; pdb.set_trace()
+        self.visit(node.expr)
+        ifblock = exprblock.IfBlock()
+        self.code.next = ifblock
+        self.code = exprblock.BasicBlock()
+        ifblock.truebranch = exprblock.BasicBlock()
+        self.visit(node.truebranch)
+        if node.falsebranch is not None:
+            ifblock.falsebranch = exprblock.BasicBlock()
+            self.visit(node.falsebranch)
+        # Done expanding if statement, now link to a fresh block
+        self.code = exprblock.BasicBlock()
+        ifblock.next = self.code
+
+    def visit_WhileStatement(self, node):
+        self.visit(node.expr)
+        whileblock = exprblock.WhileBlock()
+        self.code.next = whileblock
+        self.code = exprblock.BasicBlock()
+        whileblock.truebranch = exprblock.BasicBlock()
+        self.visit(node.truebranch)
+        # Done expanding while statement, now link to fresh block
+        self.code = exprblock.BasicBlock()
+        whileblock.next = self.code
+
 
 # STEP 3: Testing
 # 
@@ -219,7 +248,7 @@ def generate_code(node):
     '''
     gen = GenerateCode()
     gen.visit(node)
-    return gen.code
+    return gen.program
 
 if __name__ == '__main__':
     import exprlex
@@ -236,6 +265,7 @@ if __name__ == '__main__':
         # If no errors occurred, generate code
         if not errors_reported():
             code = generate_code(program)
+            print(code)
             # Emit the code sequence
             for inst in code:
                 print(inst)

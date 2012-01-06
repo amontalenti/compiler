@@ -184,19 +184,19 @@ def p_if_statement(p):
     '''
     if_statement : IF expression LCURL basicblock RCURL
     '''
-    p[0] = IfStatement(p[2], p[4], None)
+    p[0] = IfStatement(p[2], p[4], None, lineno=p.lineno(1))
 
 def p_if_else_statement(p):
     '''
     if_else_statement : IF expression LCURL basicblock RCURL ELSE LCURL basicblock RCURL
     '''
-    p[0] = IfStatement(p[2], p[4], p[8])
+    p[0] = IfStatement(p[2], p[4], p[8], lineno=p.lineno(1))
 
 def p_while_statement(p):
     '''
     while_statement : WHILE expression LCURL basicblock RCURL
     '''
-    p[0] = WhileStatement(p[1], p[2])
+    p[0] = WhileStatement(p[2], p[4], lineno=p.lineno(1))
 
 def p_const_declaration(p):
     '''

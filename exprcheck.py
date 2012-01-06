@@ -224,6 +224,20 @@ class CheckProgramVisitor(NodeVisitor):
             if declared_type != value_type:
                 error(node.lineno, "Cannot assign {} to {}".format(value_type, declared_type))
 
+    def visit_IfStatement(self,node):
+        self.visit(node.expr)
+        if node.expr.check_type != BoolType:
+            error(node.lineno, "Expression in if statement must evaluate to bool")
+        self.visit(node.truebranch)
+        if node.falsebranch is not None:
+            self.visit(node.falsebranch)
+
+    def visit_WhileStatement(self,node):
+        self.visit(node.expr)
+        if node.expr.check_type != BoolType:
+            error(node.lineno, "Expression in while statement must evaluate to bool")
+        self.visit(node.truebranch)
+
     def visit_ConstDeclaration(self,node):
         # 1. Check that the constant name is not already defined
         if self.symtab.lookup(node.name) is not None:

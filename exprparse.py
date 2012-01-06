@@ -18,6 +18,7 @@ statement :  const_declaration
           |  var_declaration
           |  assign_statement
           |  print_statement
+          |  return_statement
 
 if_statement : if expression { basicblock }
 
@@ -25,14 +26,32 @@ if_else_statement : if expression { basicblock } else { basicblock }
 
 while_statement : while expression { basicblock }
 
-const_declaration : CONST identifier = expression ;
+const_declaration : const identifier = expression ;
 
-var_declaration : VAR identifier typename ;
-                | VAR identifier typename = expression ;
+var_declaration : var identifier typename ;
+                | var identifier typename = expression ;
 
 assign_statement : location = expression ;
 
-print_statement : PRINT expression ;
+print_statement : print expression ;
+
+return_statement : return expression ;
+
+func_statement : func identifier ( parameters ) { basicblock }
+
+parameter : identifier typename
+
+parameters : parameters , parameter
+           | parameter
+           | empty
+
+func_call : identifier ( arguments ) ;
+
+arguments : arguments , argument
+          | argument
+          | empty
+
+argument  : expression
 
 expression :  + expression
            |  - expression
@@ -177,6 +196,9 @@ def p_statement(p):
               |  if_statement
               |  if_else_statement
               |  while_statement
+              |  return_statement
+              |  func_call
+              |  func_statement
     '''
     p[0] = p[1]
 
@@ -197,6 +219,72 @@ def p_while_statement(p):
     while_statement : WHILE expression LCURL basicblock RCURL
     '''
     p[0] = WhileStatement(p[2], p[4], lineno=p.lineno(1))
+
+def p_func_call(p):
+    '''
+    func_call : ID LPAREN arguments RPAREN SEMI
+    '''
+    p[0] = FuncCall(p[1], p[3])
+
+def p_arguments(p):
+    '''
+    arguments : argument 
+    '''
+    p[0] = FuncCallArguments([p[1]])
+
+def p_argument(p):
+    '''
+    argument : expression
+    '''
+    p[0] = p[1]
+
+def p_arguments_1(p):
+    '''
+    arguments : arguments COMMA argument
+              | empty
+    '''
+    if p[1] is None:
+        return
+    p[0] = p[1]
+    p[0].append(p[3])
+
+
+def p_parameter(p):
+    '''
+    parameter : ID typename
+    '''
+    # could support default argument values via 3rd
+    # argument here if we were feeling ambitious
+    # BTW, we're not :)
+    p[0] = FuncParameter(p[1], p[2], None)
+
+def p_parameters(p):
+    '''
+    parameters : parameter
+    '''
+    p[0] = FuncParameterList([p[1]])
+
+def p_parameters_1(p):
+    '''
+    parameters : parameters COMMA parameter
+            | empty
+    '''
+    if p[1] is None:
+        return
+    p[0] = p[1]
+    p[0].append(p[3])
+
+def p_func_statement(p):
+    '''
+    func_statement : FUNC ID typename LPAREN parameters RPAREN LCURL basicblock RCURL
+    '''
+    p[0] = FuncStatement(p[2], p[3], p[5], p[8])
+
+def p_return_statement(p):
+    '''
+    return_statement : RETURN expression SEMI
+    '''
+    p[0] = ReturnStatement(p[2], lineno=p.lineno(1))
 
 def p_const_declaration(p):
     '''

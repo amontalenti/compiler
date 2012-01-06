@@ -106,11 +106,11 @@ from ply.lex import lex
 
 tokens = [
     # keywords
-    'ID','CONST','VAR','PRINT', 'IF', 'ELSE', 'WHILE',
+    'ID','CONST','VAR','PRINT', 'IF', 'ELSE', 'WHILE', 'FUNC', 'RETURN',
 
     # Operators and delimiters
     'PLUS','MINUS','TIMES','DIVIDE',
-    'ASSIGN', 'SEMI', 'LPAREN', 'RPAREN',
+    'ASSIGN', 'SEMI', 'LPAREN', 'RPAREN', 'COMMA',
     
     # Literals
     'INTEGER', 'FLOAT', 'STRING', 'BOOL',
@@ -157,6 +157,7 @@ t_LOR       = r'\|\|'
 t_NOT       = r'!'
 t_LCURL     = r'\{'
 t_RCURL     = r'\}'
+t_COMMA     = r','
 
 # ----------------------------------------------------------------------
 # *** YOU MUST COMPLETE : write the regexs and additional code below ***
@@ -272,7 +273,7 @@ def t_STRING(t):
 # Match a raw identifier.  Identifiers follow the same rules as Python.
 # That is, they start with a letter or underscore (_) and can contain
 # an arbitrary number of letters, digits, or underscores after that.
-keywords = {"var", "const", "print", "if", "else", "while"}
+keywords = {"var", "const", "print", "if", "else", "while", "func", "return"}
 def t_ID(t):
     r'[_A-Za-z][_A-Za-z0-9]*'
     if t.value in keywords:

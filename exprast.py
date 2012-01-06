@@ -102,6 +102,39 @@ class IfStatement(AST):
 class WhileStatement(AST):
     _fields = ['expr', 'truebranch']
 
+class FuncStatement(AST):
+    _fields = ['name', 'returntype', 'parameters', 'expr']
+
+class FuncParameterList(AST):
+    _fields = ['parameters']
+
+    def append(self,stmt):
+        self.parameters.append(stmt)
+
+    def __len__(self):
+        return len(self.parameters)
+
+class FuncParameter(VarDeclaration):
+    pass
+
+class FuncCall(AST):
+    _fields = ['name', 'arguments']
+
+class FuncCallArguments(AST):
+    _fields = ['arguments']
+
+    def append(self,stmt):
+        self.arguments.append(stmt)
+
+    def __len__(self):
+        return len(self.arguments)
+
+class FuncCallArgument(AST):
+    _fields = ['expr']
+
+class ReturnStatement(AST):
+    _fields = ['expr']
+
 
 # ----------------------------------------------------------------------
 #                  DO NOT MODIFY ANYTHING BELOW HERE

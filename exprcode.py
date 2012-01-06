@@ -202,11 +202,13 @@ class GenerateCode(exprast.NodeVisitor):
         self.code.append(inst)
 
     def visit_IfStatement(self, node):
-        print("visiting %r" % node)
-        self.visit(node.expr)
+        #print("visiting %r" % node)
         ifblock = exprblock.IfBlock()
         self.code.next = ifblock
         ifblock.truebranch = exprblock.BasicBlock()
+        self.code = ifblock
+        self.visit(node.expr)
+        self.code.condvar = node.expr.gen_location
         self.code = ifblock.truebranch
         self.visit(node.truebranch)
         if node.falsebranch is not None:
@@ -218,12 +220,14 @@ class GenerateCode(exprast.NodeVisitor):
         ifblock.next = self.code
 
     def visit_WhileStatement(self, node):
-        self.visit(node.expr)
         whileblock = exprblock.WhileBlock()
         self.code.next = whileblock
         whileblock.truebranch = exprblock.BasicBlock()
+        self.code = whileblock
+        self.visit(node.expr)
+        self.code.condvar = node.expr.gen_location
         self.code = whileblock.truebranch
-        print("visiting %r" % node)
+        #print("visiting %r" % node)
         self.visit(node.truebranch)
         # Done expanding while statement, now link to fresh block
         self.code = exprblock.BasicBlock()
@@ -259,29 +263,24 @@ class JumpGenerator(exprblock.BlockVisitor):
 
     def visit_IfBlock(self,block):
         # Emit a conditional jump around the if-branch
-        inst = ('jmpfalse',
-                block.falsebranch if block.falsebranch else block.next)
-        block.append(inst)
+        #inst = ('if', block.condvar)
+        #block.append(inst)
         self.visit_BasicBlock(block)
         if block.falsebranch:
+            pass
             # Emit a jump around the else-branch (if there is one)
-            inst = ('jmp', block.next)
-            block.truebranch.append(inst)
+            #inst = ('else',)
+            #block.truebranch.append(inst)
         self.visit(block.truebranch)
         if block.falsebranch:
             self.visit(block.falsebranch)
 
     def visit_WhileBlock(self,block):
         # Emit a conditional jump around the if-branch
-        inst = ('jmpfalse', block.next)
-        block.append(inst)
+        #inst = ('while', block.condvar)
+        #block.append(inst)
         self.visit_BasicBlock(block)
         self.visit(block.truebranch)
-        if block.falsebranch:
-            # Emit a jump around the else-branch (if there is one)
-            inst = ('jmp', block.next)
-            block.append(inst)
-            self.visit(block.falsebranch)
 
 
 if __name__ == '__main__':

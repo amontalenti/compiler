@@ -40,6 +40,7 @@ Should become:
 #
 
 from codegen import CodeEmitter
+import exprblock
 
 # STEP 2: Implement the code emitter
 #
@@ -52,17 +53,6 @@ class ExprPyCodeEmitter(CodeEmitter):
     method is the entry point.  You must implement a collection of methods of
     the form emit_opcode().
     '''
-
-    def make_code(self,name,code):
-        '''
-        Make a Python function that executes the code sequence.
-        '''
-        lines = []
-        lines.append("def %s(frame=None):" % name)
-        lines.append("    if frame is None: frame = {}")
-        for line in self.process(code):
-            lines.append("    "+line)
-        return "\n".join(lines)
 
     # You must implement methods of the form emit_opcode for all of the
     # opcodes used in the 3-address intermediate code.  One example follows:
@@ -196,6 +186,64 @@ class ExprPyCodeEmitter(CodeEmitter):
          '''
          return "print(%s)" % (source)
 
+class BlockCodeEmitter(exprblock.BlockVisitor):
+    def __init__(self):
+        self.emitter = ExprPyCodeEmitter()
+        self.lines = lines = []
+        self.level = 0
+        self.emit("def main(frame=None):")
+        self.indent()
+        self.emit("if frame is None: frame = {}")
+
+    def get_code(self):
+        return "\n".join(self.lines)
+
+    def print(self):
+        print(self.get_code())
+
+    def calctab(self):
+        self.tab = self.level * 4 * " "
+
+    def indent(self):
+        self.level += 1
+
+    def dedent(self):
+        self.level -= 1
+
+    def emit(self, line):
+        self.calctab()
+        self.lines.append("%s%s" % (self.tab, line))
+
+    def visit_BasicBlock(self,block):
+        for line in self.emitter.process(block.instructions):
+            self.emit(line)
+
+    def visit_IfBlock(self,block):
+        # Emit an if statement
+        self.visit_BasicBlock(block)
+        # Emit a jump around the else-branch (if there is one)
+        self.emit("if %s:" % block.condvar)
+        self.indent()
+        self.visit(block.truebranch)
+        if block.falsebranch:
+            self.dedent()
+            self.emit("else:")
+            self.indent()
+            self.visit(block.falsebranch)
+        self.dedent()
+
+    def visit_WhileBlock(self,block):
+        # Emit a conditional jump around the if-branch
+        self.emit("while 1:")
+        self.indent()
+        self.visit_BasicBlock(block)
+        self.emit("if not %s: break" % block.condvar)
+        self.visit(block.truebranch)
+        self.dedent()
+        # Emit a jump around the else-branch (if there is one)
+
+
+
 # STEP 3: Testing
 #
 # Try running this program on the input file good.e
@@ -209,10 +257,10 @@ class ExprPyCodeEmitter(CodeEmitter):
 #                       DO NOT MODIFY ANYTHING BELOW       
 # ----------------------------------------------------------------------
 
-def emit_pycode(funcname,imcode):
-    emitter = ExprPyCodeEmitter()
-    code = emitter.make_code(funcname,imcode)
-    print(code)
+def emit_pycode(imcode):
+    emitter = BlockCodeEmitter()
+    emitter.visit(code)
+    emitter.print()
 
 if __name__ == '__main__':
     import exprlex
@@ -231,7 +279,7 @@ if __name__ == '__main__':
         # If no errors occurred, generate code
         if not errors_reported():
             code = exprcode.generate_code(program)
-            emit_pycode("main", code)
+            emit_pycode(code)
             print("if __name__ == '__main__':")
             print("     main()")
 

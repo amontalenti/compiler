@@ -250,7 +250,7 @@ def generate_code(node):
     gen.visit(node)
     return gen.program
 
-class PrintBlocks(exprblock.BlockVisitor):
+class JumpGenerator(exprblock.BlockVisitor):
     def visit_BasicBlock(self,block):
         print("Block:[%s]" % block)
         for inst in block.instructions:
@@ -258,13 +258,30 @@ class PrintBlocks(exprblock.BlockVisitor):
         print("")
 
     def visit_IfBlock(self,block):
+        # Emit a conditional jump around the if-branch
+        inst = ('jmpfalse',
+                block.falsebranch if block.falsebranch else block.next)
+        block.append(inst)
         self.visit_BasicBlock(block)
+        if block.falsebranch:
+            # Emit a jump around the else-branch (if there is one)
+            inst = ('jmp', block.next)
+            block.truebranch.append(inst)
         self.visit(block.truebranch)
-        self.visit(block.falsebranch)
+        if block.falsebranch:
+            self.visit(block.falsebranch)
 
     def visit_WhileBlock(self,block):
+        # Emit a conditional jump around the if-branch
+        inst = ('jmpfalse', block.next)
+        block.append(inst)
         self.visit_BasicBlock(block)
         self.visit(block.truebranch)
+        if block.falsebranch:
+            # Emit a jump around the else-branch (if there is one)
+            inst = ('jmp', block.next)
+            block.append(inst)
+            self.visit(block.falsebranch)
 
 
 if __name__ == '__main__':
@@ -283,4 +300,6 @@ if __name__ == '__main__':
         if not errors_reported():
             code = generate_code(program)
             # Emit the code sequence
-            PrintBlocks().visit(code)
+            JumpGenerator().visit(code)
+            for inst in code:
+                print(inst)

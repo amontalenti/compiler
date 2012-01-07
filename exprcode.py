@@ -84,6 +84,19 @@ Your 3-address code is only allowed to use the following operators:
        ('not',source,target)          # target = !source
        ('print',source)               # Print value of source
 
+       ('load_local',name,target)     # Load value of a local variable
+       ('load_global',name,target)    # Load value of a global variable
+       ('store_local',source,name)    # Store value of a local variable
+       ('store_global',source,name)   # Store value of a global variable
+       ('newvar_local',source,name)   # Make a new local variable
+       ('newvar_global',source,name)  # Make a new global variable
+       ('new_frame',)                 # Make new stack frame
+       ('store_frame',source,name)    # Store value in new stack frame
+       ('load_frame',name,target)     # Load value from stack frame
+       ('newvar_frame',source,name)   # Make a new value in the stack frame
+       ('call',name)                  # Call function with last created stack frame
+       ('del_frame',)                 # Delete last created stack frame
+
 When emitting 3-address code, you should never reuse names for temporary
 variables.  Simply keep a counter and keep making new names whenever you
 need a new temporary value (e.g., int_1, int_2, int_3, ...).  Also,
@@ -183,17 +196,25 @@ class GenerateCode(exprast.NodeVisitor):
 
     def visit_VarDeclaration(self, node):
         self.visit(node.expr)
-        inst = ("newvar", node.expr.gen_location, node.name)
+        if node.scope_level == 0:
+            opcode = "newvar_global"
+        else:
+            opcode = "newvar_local"
+        inst = (opcode, node.expr.gen_location, node.name)
         self.code.append(inst)
 
     def visit_ConstDeclaration(self, node):
         self.visit(node.expr)
-        inst = ("newvar", node.expr.gen_location, node.name)
+        if node.scope_level == 0:
+            opcode = "newvar_global"
+        else:
+            opcode = "newvar_local"
+        inst = (opcode, node.expr.gen_location, node.name)
         self.code.append(inst)
 
     def visit_AssignmentStatement(self, node):
         self.visit(node.expr)
-        inst = ("store", node.expr.gen_location, node.location.name)
+        inst = ("store_local", node.expr.gen_location, node.location.name)
         self.code.append(inst)
 
     def visit_PrintStatement(self, node):
@@ -232,6 +253,20 @@ class GenerateCode(exprast.NodeVisitor):
         # Done expanding while statement, now link to fresh block
         self.code = exprblock.BasicBlock()
         whileblock.next = self.code
+
+    def visit_FuncCall(self, node):
+        print("encountered function call")
+        self.code.append(("new_frame",))
+        self.visit(node.arguments)
+        for arg in node.arguments.arguments:
+            self.code.append(("store_frame", arg.gen_location, arg.parm.name))
+        self.code.append(("call", node.name))
+
+    def visit_FuncCallArguments(self, node):
+        for arg in node.arguments:
+                self.visit(arg)
+
+
 
 
 # STEP 3: Testing

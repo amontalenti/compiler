@@ -314,7 +314,7 @@ class CheckProgramVisitor(NodeVisitor):
             return
         # 2. Add an entry to the symbol table, and also create a nested symbol
         # table for the function statement
-        self.environment.add_local(node.name, node)
+        self.environment.add_root(node.name, node)
         # 3. Propagate the returntype as a checktype for the function, for 
         # use in function call checking and return statement checking
         if hasattr(node.returntype, "check_type"):
@@ -339,6 +339,7 @@ class CheckProgramVisitor(NodeVisitor):
             return
         sym = self.environment.lookup(node.name)
         if not sym:
+            self.environment.print()
             error(node.lineno, "Function name '{}' not found".format(node.name))
             return
         if not isinstance(sym, FuncStatement):
@@ -354,6 +355,7 @@ class CheckProgramVisitor(NodeVisitor):
                 argerrors = True
             if argerrors:
                 return
+            arg.parm = parm
 
     def visit_FuncCallArguments(self, node):
         for argument in node.arguments:

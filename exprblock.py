@@ -26,6 +26,12 @@ class BasicBlock(Block):
     '''
     pass
 
+class FuncBlock(Block):
+    '''
+    Class for a function code block.  Control flow uses the return pointer.
+    '''
+    pass
+
 class IfBlock(Block):
     '''
     Class for a basic-block representing an if-else.  There are
